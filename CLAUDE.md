@@ -10,4 +10,5 @@ Source of truth is Notion (Project Overview, Development Workflow, Backend Archi
 - `supabase/migrations` is owned by the DB agent. The Dev agent does not write schema SQL.
 - Route protection lives in `proxy.ts` (Next.js 16 name for middleware).
 - Git: `main` protected, `dev` integration, `feature/<module>` per task, PR into `dev`. Commits: `type: what changed` (feat, fix, db, contract, docs).
+- Strict: never add `Co-Authored-By` trailers or any Claude/AI attribution to commits or PR descriptions.
 - Branding is placeholder: name in `lib/brand.ts`, colours in `app/globals.css`.
