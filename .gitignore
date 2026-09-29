@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# next.js
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# env files: only .env.example is committed
+.env
+.env*.local
+.env.*
+!.env.example
+
+# hardhat
+contracts/artifacts/
+contracts/cache/
+contracts/typechain-types/
+contracts/coverage/
+
+# supabase local
+supabase/.temp/
+supabase/.branches/
+
+# vercel
+.vercel
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+coverage/
