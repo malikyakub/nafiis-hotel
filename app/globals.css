@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* Placeholder brand palette until branding is final (TASK-44). Change here only. */
+:root {
+  --background: #fbfaf7;
+  --foreground: #1c1917;
+  --muted: #78716c;
+  --border: #e7e5e4;
+  --brand: #0f5f5c;
+  --brand-foreground: #ffffff;
+  --accent: #c8963e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f1413;
+    --foreground: #eceae6;
+    --muted: #a8a29e;
+    --border: #2a302f;
+    --brand: #3aa39e;
+    --brand-foreground: #0f1413;
+    --accent: #d9ab5c;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
