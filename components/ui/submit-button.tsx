@@ -1,18 +1,16 @@
+import { Button, type ButtonVariant } from "./button";
+
 type SubmitButtonProps = {
   pending: boolean;
   children: React.ReactNode;
   pendingLabel?: string;
+  variant?: ButtonVariant;
 };
 
-export function SubmitButton({ pending, children, pendingLabel }: SubmitButtonProps) {
+export function SubmitButton({ pending, children, pendingLabel, variant }: SubmitButtonProps) {
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      aria-disabled={pending}
-      className="h-11 rounded-lg bg-brand px-4 font-medium text-brand-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-    >
+    <Button type="submit" variant={variant} disabled={pending} aria-disabled={pending}>
       {pending ? (pendingLabel ?? "Please wait…") : children}
-    </button>
+    </Button>
   );
 }

@@ -6,6 +6,7 @@ import type { FormState } from "@/lib/auth/form-state";
 import { ROLE_HOME, safeNextPath, type AppRole } from "@/lib/auth/roles";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createServerClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/log";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD = 8;
@@ -26,7 +27,7 @@ function failure(error: unknown, values?: Record<string, string>): FormState {
   if (error instanceof SupabaseConfigError) {
     return { error: "Sign-in is not available yet: Supabase is not configured.", values };
   }
-  console.error(error);
+  logError("auth", error);
   return { error: "Something went wrong. Please try again.", values };
 }
 
@@ -185,7 +186,7 @@ export async function signOut() {
     const supabase = await createServerClient();
     await supabase.auth.signOut();
   } catch (error) {
-    if (!(error instanceof SupabaseConfigError)) console.error(error);
+    if (!(error instanceof SupabaseConfigError)) logError("auth", error);
   }
   redirect("/login");
 }

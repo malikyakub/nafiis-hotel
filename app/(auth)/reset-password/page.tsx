@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ButtonLink } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createServerClient } from "@/lib/supabase/server";
 import { ResetPasswordForm } from "./reset-password-form";
@@ -20,24 +21,20 @@ export default async function ResetPasswordPage() {
   if (!hasSession) {
     return (
       <>
-        <h1 className="text-xl font-semibold">Link expired</h1>
-        <p className="mt-2 text-sm text-muted">
-          Open this page from the link in your reset email. Links work once and expire after an hour.
-        </p>
-        <Link
-          href="/forgot-password"
-          className="mt-6 flex h-11 items-center justify-center rounded-lg bg-brand font-medium text-brand-foreground hover:opacity-90"
-        >
+        <PageHeader
+          title="Link expired"
+          subtitle="Open this page from the link in your reset email. Links work once and expire after an hour."
+        />
+        <ButtonLink href="/forgot-password" className="mt-6 w-full">
           Request a new link
-        </Link>
+        </ButtonLink>
       </>
     );
   }
 
   return (
     <>
-      <h1 className="text-xl font-semibold">Set a new password</h1>
-      <p className="mt-1 text-sm text-muted">You&apos;ll sign in again with it afterwards.</p>
+      <PageHeader title="Set a new password" subtitle="You'll sign in again with it afterwards." />
       <ResetPasswordForm />
     </>
   );

@@ -1,22 +1,21 @@
 "use client";
 
-import { useActionState } from "react";
+import { Lock } from "lucide-react";
 import { Field } from "@/components/ui/field";
-import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { initialFormState } from "@/lib/auth/form-state";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { updatePassword } from "../actions";
 
 export function ResetPasswordForm() {
-  const [state, formAction, pending] = useActionState(updatePassword, initialFormState);
+  const [, formAction, pending] = useFormAction(updatePassword);
 
   return (
     <form action={formAction} className="mt-6 flex flex-col gap-4" noValidate>
-      <FormMessage error={state.error} />
       <Field
         label="New password"
         name="password"
         type="password"
+        icon={Lock}
         autoComplete="new-password"
         minLength={8}
         hint="At least 8 characters."
@@ -26,6 +25,7 @@ export function ResetPasswordForm() {
         label="Confirm new password"
         name="confirm_password"
         type="password"
+        icon={Lock}
         autoComplete="new-password"
         required
       />

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { safeNextPath } from "@/lib/auth/roles";
+import { logError } from "@/lib/log";
 import { createServerClient } from "@/lib/supabase/server";
 
 // Landing point for Supabase email links (sign-up confirmation, password reset).
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) return NextResponse.redirect(new URL(next, origin));
     } catch (error) {
-      console.error(error);
+      logError("auth/callback", error);
     }
   }
 

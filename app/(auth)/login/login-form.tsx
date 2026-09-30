@@ -1,30 +1,23 @@
 "use client";
 
-import Link from "next/link";
-import { useActionState } from "react";
+import { Lock, Mail } from "lucide-react";
 import { Field } from "@/components/ui/field";
-import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { initialFormState } from "@/lib/auth/form-state";
+import { TextLink } from "@/components/ui/text-link";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { login } from "../actions";
 
-type LoginFormProps = {
-  notice?: { success?: string; error?: string };
-  next?: string;
-};
-
-export function LoginForm({ notice, next }: LoginFormProps) {
-  const [state, formAction, pending] = useActionState(login, initialFormState);
-  const touched = state !== initialFormState;
+export function LoginForm({ next }: { next?: string }) {
+  const [state, formAction, pending] = useFormAction(login);
 
   return (
     <form action={formAction} className="mt-6 flex flex-col gap-4" noValidate>
-      <FormMessage {...(touched ? state : notice)} />
       {next && <input type="hidden" name="next" value={next} />}
       <Field
         label="Email"
         name="email"
         type="email"
+        icon={Mail}
         autoComplete="email"
         required
         defaultValue={state.values?.email}
@@ -33,12 +26,13 @@ export function LoginForm({ notice, next }: LoginFormProps) {
         label="Password"
         name="password"
         type="password"
+        icon={Lock}
         autoComplete="current-password"
         required
       />
-      <Link href="/forgot-password" className="-mt-2 self-end text-sm text-brand hover:underline">
+      <TextLink href="/forgot-password" className="-mt-2 self-end text-sm font-normal">
         Forgot password?
-      </Link>
+      </TextLink>
       <SubmitButton pending={pending} pendingLabel="Signing in…">
         Sign in
       </SubmitButton>

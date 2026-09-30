@@ -1,30 +1,30 @@
 "use client";
 
-import { useActionState } from "react";
+import { Mail } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
-import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { initialFormState } from "@/lib/auth/form-state";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { requestPasswordReset } from "../actions";
 
 export function ForgotPasswordForm() {
-  const [state, formAction, pending] = useActionState(requestPasswordReset, initialFormState);
+  const [state, formAction, pending] = useFormAction(requestPasswordReset);
 
   if (state.success) {
     return (
-      <div className="mt-6">
-        <FormMessage success={state.success} />
-      </div>
+      <Alert status="success" title="Check your email" className="mt-6">
+        {state.success}
+      </Alert>
     );
   }
 
   return (
     <form action={formAction} className="mt-6 flex flex-col gap-4" noValidate>
-      <FormMessage error={state.error} />
       <Field
         label="Email"
         name="email"
         type="email"
+        icon={Mail}
         autoComplete="email"
         required
         defaultValue={state.values?.email}

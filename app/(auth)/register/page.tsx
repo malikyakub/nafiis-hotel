@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { PageHeader } from "@/components/ui/page-header";
+import { TextLink } from "@/components/ui/text-link";
 import { RegisterForm } from "./register-form";
 
 export const metadata: Metadata = { title: "Create account" };
@@ -7,14 +8,13 @@ export const metadata: Metadata = { title: "Create account" };
 export default function RegisterPage() {
   return (
     <>
-      <h1 className="text-xl font-semibold">Create a guest account</h1>
-      <p className="mt-1 text-sm text-muted">Book rooms, pay, and keep your Proof of Payment.</p>
+      <PageHeader
+        title="Create a guest account"
+        subtitle="Book rooms, pay, and keep your Proof of Payment."
+      />
       <RegisterForm />
       <p className="mt-6 text-center text-sm text-muted">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium text-brand hover:underline">
-          Sign in
-        </Link>
+        Already have an account? <TextLink href="/login">Sign in</TextLink>
       </p>
     </>
   );

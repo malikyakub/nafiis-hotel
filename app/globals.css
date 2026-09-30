@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
-/* Placeholder brand palette until branding is final (TASK-44). Change here only. */
+/* Placeholder brand palette until branding is final (TASK-44). Change here only.
+   Light mode only: the site does not follow the system theme. */
 :root {
+  color-scheme: light;
   --background: #fbfaf7;
+  --surface: #ffffff;
   --foreground: #1c1917;
   --muted: #78716c;
   --border: #e7e5e4;
@@ -11,20 +14,9 @@
   --accent: #c8963e;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1413;
-    --foreground: #eceae6;
-    --muted: #a8a29e;
-    --border: #2a302f;
-    --brand: #3aa39e;
-    --brand-foreground: #0f1413;
-    --accent: #d9ab5c;
-  }
-}
-
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-border: var(--border);
@@ -38,4 +30,25 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+@keyframes alert-in {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-alert-in {
+  animation: alert-in 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-alert-in {
+    animation: none;
+  }
 }
