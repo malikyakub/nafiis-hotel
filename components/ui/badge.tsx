@@ -1,25 +1,28 @@
+import { CircleCheck, CircleDot, CircleX, Info, TriangleAlert, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Status } from "./status";
 
-const TONES: Record<Status, string> = {
-  success: "bg-emerald-100 text-emerald-800",
-  warning: "bg-amber-100 text-amber-900",
-  danger: "bg-red-100 text-red-800",
-  info: "bg-sky-100 text-sky-800",
-  neutral: "bg-stone-200 text-stone-700",
+const TONES: Record<Status, { className: string; Icon: LucideIcon }> = {
+  success: { className: "bg-success-soft text-success", Icon: CircleCheck },
+  warning: { className: "bg-warning-soft text-warning", Icon: TriangleAlert },
+  danger: { className: "bg-danger-soft text-danger", Icon: CircleX },
+  info: { className: "bg-info-soft text-info", Icon: Info },
+  neutral: { className: "bg-neutral-soft text-neutral", Icon: CircleDot },
 };
 
 type BadgeProps = { status?: Status; children: React.ReactNode; className?: string };
 
 export function Badge({ status = "neutral", children, className }: BadgeProps) {
+  const { className: tone, Icon } = TONES[status];
   return (
     <span
       className={cn(
-        "inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium",
-        TONES[status],
+        "inline-flex h-6 items-center gap-1.5 whitespace-nowrap rounded-full pl-2 pr-2.5 text-xs leading-none font-semibold",
+        tone,
         className,
       )}
     >
+      <Icon aria-hidden className="size-3.5 shrink-0" />
       {children}
     </span>
   );

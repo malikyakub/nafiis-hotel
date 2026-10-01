@@ -11,27 +11,29 @@ export type ButtonVariant =
   | "danger";
 export type ButtonSize = "sm" | "md";
 
+// Hover darkens solid fills by 22% so every status colour behaves the same.
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-brand text-brand-foreground hover:bg-brand/90",
-  secondary: "border border-border bg-surface text-foreground hover:bg-background",
-  ghost: "text-brand hover:bg-brand/10",
-  success: "bg-emerald-600 text-white hover:bg-emerald-700",
-  warning: "bg-amber-500 text-amber-950 hover:bg-amber-400",
-  danger: "bg-red-600 text-white hover:bg-red-700",
+  primary: "bg-brand text-brand-foreground hover:bg-[color-mix(in_oklab,var(--brand),black_22%)]",
+  secondary: "border border-border bg-surface text-foreground hover:bg-foreground/5",
+  ghost: "text-foreground hover:bg-foreground/5",
+  success: "bg-success text-white hover:bg-[color-mix(in_oklab,var(--success),black_22%)]",
+  warning: "bg-warning text-white hover:bg-[color-mix(in_oklab,var(--warning),black_22%)]",
+  danger: "bg-danger text-white hover:bg-[color-mix(in_oklab,var(--danger),black_22%)]",
 };
 
 const SIZES: Record<ButtonSize, string> = {
-  sm: "h-9 px-4 text-sm",
-  md: "h-11 px-6 text-base",
+  sm: "h-9 px-3.5 text-sm [&_svg]:size-4",
+  md: "h-11 px-5 text-[15px] [&_svg]:size-[18px]",
 };
 
 type StyleProps = { variant?: ButtonVariant; size?: ButtonSize; className?: string };
 
 export function buttonClass({ variant = "primary", size = "md", className }: StyleProps = {}) {
   return cn(
-    "inline-flex items-center justify-center gap-2 rounded-full font-medium transition",
-    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-    "disabled:cursor-not-allowed disabled:opacity-60",
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium leading-none transition",
+    "[&_svg]:shrink-0",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "disabled:cursor-not-allowed disabled:opacity-45 disabled:pointer-events-none",
     VARIANTS[variant],
     SIZES[size],
     className,

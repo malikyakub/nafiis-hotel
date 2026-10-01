@@ -11,7 +11,7 @@ export function LoginForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useFormAction(login);
 
   return (
-    <form action={formAction} className="mt-6 flex flex-col gap-4" noValidate>
+    <form action={formAction} className="flex flex-col gap-4" noValidate>
       {next && <input type="hidden" name="next" value={next} />}
       <Field
         label="Email"
@@ -30,10 +30,10 @@ export function LoginForm({ next }: { next?: string }) {
         autoComplete="current-password"
         required
       />
-      <TextLink href="/forgot-password" className="-mt-2 self-end text-sm font-normal">
+      <TextLink href="/forgot-password" className="-mt-1.5 self-end text-[13px]">
         Forgot password?
       </TextLink>
-      <SubmitButton pending={pending} pendingLabel="Signing in…">
+      <SubmitButton pending={pending} pendingLabel="Signing in…" className="mt-1">
         Sign in
       </SubmitButton>
     </form>

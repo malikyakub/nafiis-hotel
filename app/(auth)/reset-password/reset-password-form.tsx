@@ -10,7 +10,7 @@ export function ResetPasswordForm() {
   const [, formAction, pending] = useFormAction(updatePassword);
 
   return (
-    <form action={formAction} className="mt-6 flex flex-col gap-4" noValidate>
+    <form action={formAction} className="flex flex-col gap-4" noValidate>
       <Field
         label="New password"
         name="password"

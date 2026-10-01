@@ -37,7 +37,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-4 top-4 z-50 flex flex-col items-end gap-2 sm:left-auto sm:w-96"
+        className="pointer-events-none fixed inset-x-4 top-4 z-50 flex flex-col items-end gap-2.5 sm:left-auto sm:w-[360px]"
       >
         {alerts.map((alert) => (
           <Alert
@@ -45,7 +45,8 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
             status={alert.status}
             title={alert.title}
             onDismiss={() => dismiss(alert.id)}
-            className="animate-alert-in pointer-events-auto w-full shadow-lg"
+            variant="toast"
+            className="animate-alert-in pointer-events-auto w-full"
           >
             {alert.message}
           </Alert>

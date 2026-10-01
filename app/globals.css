@@ -1,17 +1,30 @@
 @import "tailwindcss";
 
-/* Placeholder brand palette until branding is final (TASK-44). Change here only.
+/* Nafiis brand palette (design: "Coral Stone & Ocean"). Change colours here only.
    Light mode only: the site does not follow the system theme. */
 :root {
   color-scheme: light;
-  --background: #fbfaf7;
-  --surface: #ffffff;
-  --foreground: #1c1917;
-  --muted: #78716c;
-  --border: #e7e5e4;
-  --brand: #0f5f5c;
+  --background: #f7f3ec; /* coral sand */
+  --surface: #fffdf9; /* warm white: cards, inputs */
+  --foreground: #14202b; /* deep ink */
+  --muted: #5a6470; /* secondary text */
+  --border: #e4dacb; /* hairlines, card edges */
+  --border-strong: #948876; /* input and control outlines (3:1 on surface) */
+  --brand: #0e4a68; /* Indian Ocean blue */
   --brand-foreground: #ffffff;
-  --accent: #c8963e;
+  --accent: #b03f28; /* coral stone: eyebrows, lozenge */
+  --sand-dark: #ece4d6; /* photo placeholders */
+
+  --success: #1c6b45;
+  --success-soft: #e3f1e8;
+  --warning: #8a4a0b;
+  --warning-soft: #fbebd3;
+  --danger: #b3261e;
+  --danger-soft: #fbe5e2;
+  --info: #1f57a3;
+  --info-soft: #e3ecf8;
+  --neutral: #48515c;
+  --neutral-soft: #ece7de;
 }
 
 @theme inline {
@@ -20,16 +33,48 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-sand-dark: var(--sand-dark);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-neutral: var(--neutral);
+  --color-neutral-soft: var(--neutral-soft);
+  --font-sans: var(--font-geist);
+  --font-display: var(--font-gloock);
+  --shadow-card: 0 1px 2px rgb(20 32 43 / 0.04), 0 12px 32px -16px rgb(20 32 43 / 0.18);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Diamond lattice from Somali weaving and door carving: two 1px lines at ±45°. */
+.lattice {
+  background-image:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 0.07) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.07) 0 1px, transparent 1px 28px);
+}
+
+.lattice-sand {
+  background-image:
+    repeating-linear-gradient(45deg, rgb(14 74 104 / 0.045) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(-45deg, rgb(14 74 104 / 0.045) 0 1px, transparent 1px 28px);
+}
+
+.lattice-soft {
+  background-image:
+    repeating-linear-gradient(45deg, rgb(20 32 43 / 0.05) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(-45deg, rgb(20 32 43 / 0.05) 0 1px, transparent 1px 22px);
 }
 
 @keyframes alert-in {
@@ -44,7 +89,7 @@ body {
 }
 
 .animate-alert-in {
-  animation: alert-in 180ms ease-out;
+  animation: alert-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

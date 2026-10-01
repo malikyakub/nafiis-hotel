@@ -18,14 +18,14 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <>
-      <PageHeader title="Sign in" subtitle="Guests and staff sign in here." />
+      <PageHeader size="card" title="Sign in" subtitle="Guests and staff sign in here." />
       {notice && (
-        <Alert status={notice.status} className="mt-6">
+        <Alert status={notice.status}>
           {notice.text}
         </Alert>
       )}
       <LoginForm next={typeof next === "string" ? next : undefined} />
-      <p className="mt-6 text-center text-sm text-muted">
+      <p className="text-center text-sm text-muted">
         New guest? <TextLink href="/register">Create an account</TextLink>
       </p>
     </>
