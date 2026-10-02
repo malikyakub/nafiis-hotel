@@ -9,15 +9,17 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
   hint?: string;
   // Shown under the input in place of the hint, and marks the input invalid.
   error?: string;
+  // Tighter padding and a smaller icon, for dense layouts like the quick booking bar.
+  compact?: boolean;
 };
 
-export function Field({ label, name, icon: Icon, hint, error, id, className, ...input }: FieldProps) {
+export function Field({ label, name, icon: Icon, hint, error, compact, id, className, ...input }: FieldProps) {
   const inputId = id ?? name;
   const message = error ?? hint;
   const messageId = message ? `${inputId}-hint` : undefined;
 
   return (
-    <div className="group flex flex-col gap-2">
+    <div className={cn("group flex min-w-0 flex-col", compact ? "gap-1.5" : "gap-2")}>
       <label htmlFor={inputId} className="text-[13px] leading-[18px] font-medium">
         {label}
       </label>
@@ -25,7 +27,8 @@ export function Field({ label, name, icon: Icon, hint, error, id, className, ...
         <Icon
           aria-hidden
           className={cn(
-            "pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 transition",
+            "pointer-events-none absolute top-1/2 -translate-y-1/2 transition",
+            compact ? "left-3 size-4" : "left-4 size-[18px]",
             error ? "text-danger" : "text-muted group-focus-within:text-brand",
           )}
         />
@@ -35,7 +38,8 @@ export function Field({ label, name, icon: Icon, hint, error, id, className, ...
           aria-describedby={messageId}
           aria-invalid={error ? true : undefined}
           className={cn(
-            "h-11 w-full rounded-full border bg-surface pl-11 pr-[18px] text-[15px] text-foreground outline-none transition",
+            "h-11 w-full min-w-0 rounded-full border bg-surface text-foreground outline-none transition",
+            compact ? "pl-8 pr-2.5 text-sm" : "pl-11 pr-[18px] text-[15px]",
             "placeholder:text-muted",
             error
               ? "border-danger ring-3 ring-danger/14"

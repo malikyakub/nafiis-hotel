@@ -32,10 +32,15 @@ export function BrandMark({ size = "md", tone = "color", className }: BrandMarkP
   );
 }
 
-type BrandSymbolProps = { size?: number; className?: string };
+type BrandSymbolProps = {
+  size?: number;
+  // badge: white N on the brand circle. bare: the N alone in white, for photos and dark grounds.
+  tone?: "badge" | "bare";
+  className?: string;
+};
 
 // The round "N" mark. The lozenge shows from 40px up; smaller sizes drop it, like the favicon.
-export function BrandSymbol({ size = 40, className }: BrandSymbolProps) {
+export function BrandSymbol({ size = 40, tone = "badge", className }: BrandSymbolProps) {
   return (
     <svg
       viewBox="0 0 100 100"
@@ -45,7 +50,7 @@ export function BrandSymbol({ size = 40, className }: BrandSymbolProps) {
       aria-label={brand.name}
       className={cn("block shrink-0", className)}
     >
-      <circle cx="50" cy="50" r="50" className="fill-brand" />
+      {tone === "badge" && <circle cx="50" cy="50" r="50" className="fill-brand" />}
       <path className="fill-white" d={MARK_N} />
       {size >= 40 && <path className="fill-accent" d={MARK_LOZENGE} />}
     </svg>

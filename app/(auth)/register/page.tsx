@@ -12,7 +12,7 @@ export default function RegisterPage() {
         <PageHeader
           size="card"
           title="Create a guest account"
-          subtitle="Book rooms, pay, and keep your Proof of Payment."
+          subtitle="Book rooms, order meals and keep track of your stay."
         />
       }
       footer={

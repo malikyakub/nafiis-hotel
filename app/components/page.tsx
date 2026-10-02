@@ -16,6 +16,7 @@ import { STATUSES } from "@/components/ui/status";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { TextLink } from "@/components/ui/text-link";
 import { AlertDemo } from "./alert-demo";
+import { PickerDemo } from "./picker-demo";
 
 export const metadata: Metadata = { title: "Components", robots: { index: false } };
 
@@ -47,11 +48,11 @@ const TYPE_SCALE = [
   { name: "H1", spec: "Gloock 40/46 · page titles (28/34 mobile)", className: "font-display text-[28px] leading-[34px] md:text-[40px] md:leading-[46px]", sample: "Rooms by the ocean" },
   { name: "H2", spec: "Gloock 28/34 · sections, auth card titles", className: "font-display text-[28px] leading-[34px]", sample: "Create a guest account" },
   { name: "H3", spec: "Gloock 22/28 · card titles", className: "font-display text-[22px] leading-7", sample: "Ocean room" },
-  { name: "Body large", spec: "Geist 18/28 · lead paragraphs", className: "text-lg leading-7", sample: "Book rooms, pay, and keep your Proof of Payment." },
+  { name: "Body large", spec: "Geist 18/28 · lead paragraphs", className: "text-lg leading-7", sample: "Book rooms, order meals and keep track of your stay." },
   { name: "Body", spec: "Geist 15/24 · default UI text", className: "text-[15px] leading-6", sample: "Guests and staff sign in here." },
   { name: "Small", spec: "Geist 14/20 · secondary text, alerts", className: "text-sm leading-5", sample: "Links work once and expire after an hour." },
   { name: "Label", spec: "Geist 500 13/18 · field labels", className: "text-[13px] leading-[18px] font-medium", sample: "Email" },
-  { name: "Eyebrow", spec: "Geist 600 12/16 · +0.16em, uppercase", className: "text-xs leading-4 font-semibold uppercase tracking-[0.16em] text-accent", sample: "Proof of Payment" },
+  { name: "Eyebrow", spec: "Geist 600 12/16 · +0.16em, uppercase", className: "text-xs leading-4 font-semibold uppercase tracking-[0.16em] text-accent", sample: "Your stay" },
 ];
 
 const SECTIONS = [
@@ -60,6 +61,7 @@ const SECTIONS = [
   { id: "brand", title: "Brand mark", file: "components/ui/brand-mark.tsx" },
   { id: "buttons", title: "Buttons", file: "components/ui/button.tsx, submit-button.tsx" },
   { id: "inputs", title: "Inputs", file: "components/ui/field.tsx" },
+  { id: "pickers", title: "Pickers", file: "components/ui/date-time-field.tsx, listbox-field.tsx" },
   { id: "badges", title: "Badges", file: "components/ui/badge.tsx" },
   { id: "alerts", title: "Alerts", file: "components/ui/alert.tsx, alert-provider.tsx" },
   { id: "layout", title: "Card · Page header · Text link", file: "card.tsx, page-header.tsx, text-link.tsx" },
@@ -91,7 +93,7 @@ function Caption({ children }: { children: React.ReactNode }) {
 export default function ComponentsPage() {
   return (
     <div className="lattice-sand flex-1">
-      <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 md:px-10 lg:grid-cols-[240px_minmax(0,1fr)] lg:py-14">
+      <div className="mx-auto grid max-w-page gap-8 px-4 py-10 md:px-10 lg:grid-cols-[240px_minmax(0,1fr)] lg:py-14">
         <aside className="hidden lg:block">
           <nav aria-label="Sections" className="sticky top-14 flex flex-col gap-1">
             <Link href="/" className="mb-4 w-fit rounded-xl">
@@ -189,7 +191,7 @@ export default function ComponentsPage() {
           </Section>
 
           <Section id="buttons">
-            <Caption>Pill radius, 500 weight. md is 44px tall, sm 36px.</Caption>
+            <Caption>Pill radius, 500 weight. md is 44px tall, sm 36px. Hover: the fill sweeps in from the left and leaves to the right.</Caption>
             <div className="flex flex-wrap gap-2">
               {BUTTON_VARIANTS.map((variant) => (
                 <Button key={variant} variant={variant} className="capitalize">
@@ -218,6 +220,12 @@ export default function ComponentsPage() {
                 <Search aria-hidden />
               </Button>
             </div>
+            <div className="lattice flex flex-wrap items-center gap-2 rounded-3xl bg-brand p-6">
+              <Button variant="solid-light">Solid light</Button>
+              <Button variant="outline-light">Outline light</Button>
+              <Button variant="ghost-light">Ghost light</Button>
+              <Button variant="outline-light" size="sm">Outline light</Button>
+            </div>
             <div className="grid max-w-md gap-2 sm:grid-cols-2">
               <SubmitButton pending={false}>Sign in</SubmitButton>
               <SubmitButton pending pendingLabel="Signing in…">
@@ -236,6 +244,11 @@ export default function ComponentsPage() {
               <Field label="Check-in" name="demo_date" type="date" icon={CalendarDays} />
               <Field label="Search (disabled)" name="demo_search" icon={Search} placeholder="Wallet code" disabled />
             </div>
+          </Section>
+
+          <Section id="pickers">
+            <Caption>No visible label: the label is the placeholder and the accessible name. Date, then time, in one popover.</Caption>
+            <PickerDemo />
           </Section>
 
           <Section id="badges">
@@ -300,7 +313,7 @@ export default function ComponentsPage() {
             <p className="text-sm text-muted">
               Already have an account? <TextLink href="/components">Sign in</TextLink> ·{" "}
               <TextLink href="/components" external>
-                Verify on the blockchain
+                View your booking
               </TextLink>
             </p>
           </Section>
@@ -316,7 +329,7 @@ export default function ComponentsPage() {
               <Card>
                 <DetailList
                   items={[
-                    { label: "Reference", value: "POP-0001", mono: true },
+                    { label: "Reference", value: "NFS-0001", mono: true },
                     { label: "Guest", value: "Amina Hassan" },
                     { label: "Amount", value: "$120.00" },
                   ]}

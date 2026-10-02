@@ -9,6 +9,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/log";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^\+?[\d\s-]{7,20}$/;
 const MIN_PASSWORD = 8;
 
 const text = (formData: FormData, key: string) =>
@@ -81,12 +82,13 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   const confirm = String(formData.get("confirm_password") ?? "");
   const values = { full_name: fullName, phone, email };
 
-  if (fullName.length < 2) return { error: "Enter your full name.", values };
-  if (!EMAIL_RE.test(email)) return { error: "Enter a valid email address.", values };
+  if (fullName.length < 2) return { error: "Enter your full name.", field: "full_name", values };
+  if (phone && !PHONE_RE.test(phone)) return { error: "Check the phone number.", field: "phone", values };
+  if (!EMAIL_RE.test(email)) return { error: "Enter a valid email address.", field: "email", values };
   if (password.length < MIN_PASSWORD) {
-    return { error: `Password must be at least ${MIN_PASSWORD} characters.`, values };
+    return { error: `Password must be at least ${MIN_PASSWORD} characters.`, field: "password", values };
   }
-  if (password !== confirm) return { error: "Passwords do not match.", values };
+  if (password !== confirm) return { error: "Passwords do not match.", field: "confirm_password", values };
 
   let signedIn = false;
   try {
@@ -105,10 +107,10 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
 
     if (error) {
       if (error.code === "weak_password") {
-        return { error: "That password is too weak. Try a longer one.", values };
+        return { error: "That password is too weak. Try a longer one.", field: "password", values };
       }
       if (error.code === "user_already_exists") {
-        return { error: "An account with this email already exists. Sign in instead.", values };
+        return { error: "An account with this email already exists. Sign in instead.", field: "email", values };
       }
       return { error: "Could not create the account. Please try again.", values };
     }

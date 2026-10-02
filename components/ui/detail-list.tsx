@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 
 export type DetailItem = { label: string; value: React.ReactNode; mono?: boolean };
 
-// Label / value rows, e.g. the fields of a Proof of Payment.
+// Label / value rows, e.g. a booking summary.
 export function DetailList({ items, className }: { items: DetailItem[]; className?: string }) {
   return (
     <dl className={cn("m-0 flex flex-col", className)}>

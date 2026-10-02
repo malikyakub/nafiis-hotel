@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     default: `${brand.name} · ${brand.tagline}`,
     template: `%s · ${brand.name}`,
   },
-  description: `${brand.name}, a hotel in ${brand.city}. Book rooms, order from the restaurant, and get a verifiable Proof of Payment.`,
+  description: `${brand.name}, a hotel in ${brand.city}. Sea-facing rooms, a restaurant that cooks to order, and easy online booking.`,
 };
 
 export const viewport: Viewport = {
