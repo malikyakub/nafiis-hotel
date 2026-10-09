@@ -1,5 +1,6 @@
 "use server";
 
+import { siteOrigin as configuredOrigin } from "@/lib/site-origin";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { FormState } from "@/lib/auth/form-state";
@@ -15,14 +16,7 @@ const MIN_PASSWORD = 8;
 const text = (formData: FormData, key: string) =>
   String(formData.get(key) ?? "").trim();
 
-async function siteOrigin() {
-  const h = await headers();
-  const origin = h.get("origin");
-  if (origin) return origin;
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  return `${proto}://${host}`;
-}
+async function siteOrigin() { return configuredOrigin(await headers()); }
 
 function failure(error: unknown, values?: Record<string, string>): FormState {
   if (error instanceof SupabaseConfigError) {
@@ -34,44 +28,46 @@ function failure(error: unknown, values?: Record<string, string>): FormState {
 
 export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
   const email = text(formData, "email").toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  const values = { email };
+  if (!EMAIL_RE.test(email) || email.length > 254) return { error: "Enter a valid email address.", values: { email } };
+  try {
+    const supabase = await createServerClient();
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    if (error) return { error: error.status === 429 ? "Please wait before requesting another code." : "Could not send a code. Check your email, or create an account first.", values: { email } };
+    return { success: "Check your inbox for your verification code.", verification: "login", values: { email } };
+  } catch (error) { return failure(error, { email }); }
+}
 
-  if (!EMAIL_RE.test(email) || !password) {
-    return { error: "Enter your email and password.", values };
-  }
-
+export async function verifyEmailCode(_prev: FormState, formData: FormData): Promise<FormState> {
+  const email = text(formData, "email").toLowerCase();
+  const token = text(formData, "token");
+  if (!EMAIL_RE.test(email) || email.length > 254 || !/^[0-9]{6,10}$/.test(token)) return { error: "Enter the verification code from your email." };
   let destination: string;
   try {
     const supabase = await createServerClient();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      if (error.code === "email_not_confirmed") {
-        return { error: "Confirm your email first. Check your inbox for the link.", values };
-      }
-      return { error: "Email or password is incorrect.", values };
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, is_active")
-      .eq("id", data.user.id)
-      .single<{ role: AppRole; is_active: boolean }>();
-
-    if (profile && !profile.is_active) {
+    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+    if (error || !data.user || !data.session) return { error: "The code is incorrect or expired. Try again or request a new code." };
+    const { data: profile, error: profileError } = await supabase.from("profiles")
+      .select("role,is_active").eq("id", data.user.id).single<{ role: AppRole; is_active: boolean }>();
+    if (profileError || !profile || !profile.is_active || !Object.hasOwn(ROLE_HOME, profile.role)) {
       await supabase.auth.signOut();
-      return { error: "This account is disabled. Contact the hotel.", values };
+      return { error: "This account is unavailable. Contact the hotel." };
     }
-
-    // No profile yet (migration 001 not applied) falls back to the home page.
-    destination =
-      safeNextPath(formData.get("next")) ?? (profile ? ROLE_HOME[profile.role] : "/");
-  } catch (error) {
-    return failure(error, values);
-  }
-
+    destination = safeNextPath(formData.get("next")) ?? ROLE_HOME[profile.role];
+  } catch (error) { return failure(error); }
   redirect(destination);
+}
+
+export async function resendEmailCode(_prev: FormState, formData: FormData): Promise<FormState> {
+  const email = text(formData, "email").toLowerCase();
+  if (!EMAIL_RE.test(email) || email.length > 254) return { error: "Enter a valid email address." };
+  try {
+    const supabase = await createServerClient();
+    const { error } = text(formData, "mode") === "signup"
+      ? await supabase.auth.resend({ type: "signup", email })
+      : await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    if (error) return { error: error.status === 429 ? "Please wait before requesting another code." : "Could not resend the code. Please try again later." };
+    return { success: "A new code has been requested. Use the latest email." };
+  } catch (error) { return failure(error); }
 }
 
 export async function register(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -90,7 +86,7 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   }
   if (password !== confirm) return { error: "Passwords do not match.", field: "confirm_password", values };
 
-  let signedIn = false;
+  let verification: "signup" | "login" = "signup";
   try {
     const supabase = await createServerClient();
     const origin = await siteOrigin();
@@ -115,16 +111,19 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
       return { error: "Could not create the account. Please try again.", values };
     }
 
-    signedIn = Boolean(data.session);
+    // Even if project email confirmation is disabled, require an email code
+    // before this form grants access. Do not return the signup session.
+    if (data.session) {
+      await supabase.auth.signOut();
+      const { error: codeError } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+      if (codeError) return { error: "Account created, but the code could not be sent. Go to sign in and request a code.", values };
+      verification = "login";
+    }
   } catch (error) {
     return failure(error, values);
   }
 
-  // Email confirmation off: already signed in. On: wait for the email link.
-  if (signedIn) redirect(ROLE_HOME.guest);
-  return {
-    success: `Check ${email} for a confirmation link to finish creating your account.`,
-  };
+  return { success: "Check your inbox for your verification code.", verification, values: { email } };
 }
 
 export async function requestPasswordReset(
@@ -144,6 +143,10 @@ export async function requestPasswordReset(
     });
     if (error && error.status === 429) {
       return { error: "Too many requests. Wait a minute and try again.", values: { email } };
+    }
+    if (error) {
+      logError("auth.password-reset", error);
+      return { error: "The password reset request could not be sent. Please try again or contact the project owner to check email delivery settings.", values: { email } };
     }
   } catch (error) {
     return failure(error, { email });

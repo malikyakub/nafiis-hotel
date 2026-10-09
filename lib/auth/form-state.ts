@@ -5,6 +5,8 @@ export type FormState = {
   // The input the error is about, so a multi-step form can go back to it.
   field?: string;
   success?: string;
+  verification?: "login" | "signup";
+  bookingId?: string;
   values?: Record<string, string>;
 };
 

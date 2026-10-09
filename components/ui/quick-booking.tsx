@@ -6,12 +6,13 @@ import { initialFormState, type FormState } from "@/lib/auth/form-state";
 import { cn } from "@/lib/cn";
 import { CHECK_IN_TIMES, CHECK_OUT_TIMES, DEMO } from "@/lib/content";
 import { Alert } from "./alert";
-import { Button } from "./button";
+import { Button, ButtonLink } from "./button";
 import { Card } from "./card";
 import { addDays, DateTimeField, isoDay, type DateTime } from "./date-time-field";
 import { Field } from "./field";
 import { ListboxField, type ListboxOption } from "./listbox-field";
 import { SubmitButton } from "./submit-button";
+import { BookingSteps } from "./booking-steps";
 
 type QuickBookingProps = {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
@@ -55,8 +56,9 @@ function StayLink({ active }: { active: boolean }) {
 
 type StayErrors = Partial<Record<"check_in" | "check_out", string>>;
 
-// Two steps in one form: the stay, then who it's for. No account needed; the guest is offered
-// to save their details (account + wallet) after booking, never before.
+// Stay and contact details lead into the third step on the private payment page.
+// No account needed; the guest is offered
+// to remember their contact details on this device after booking, never before.
 export function QuickBooking({ action, rooms, className }: QuickBookingProps) {
   const [state, formAction, pending] = useActionState(action, initialFormState);
   const [step, setStep] = useState<1 | 2>(1);
@@ -67,6 +69,25 @@ export function QuickBooking({ action, rooms, className }: QuickBookingProps) {
   const [room, setRoom] = useState(state.values?.room_type ?? rooms[0]?.value ?? "");
   const [errors, setErrors] = useState<StayErrors>({});
   const [openPicker, setOpenPicker] = useState<"in" | "out" | null>(null);
+  const [contact, setContact] = useState({ full_name: "", phone: "", email: "" });
+  const [savedDetails, setSavedDetails] = useState(false);
+  const [storageNotice, setStorageNotice] = useState("");
+
+  function rememberDetails() {
+    if (!state.success || !state.values) return;
+    try {
+      localStorage.setItem("nafiis-saved-contact-v1", JSON.stringify({
+        full_name: state.values.full_name, phone: state.values.phone, email: state.values.email,
+      }));
+      setSavedDetails(true); setStorageNotice("Details saved on this device for next time.");
+    } catch { setStorageNotice("This browser could not save your details. Your booking is still saved."); }
+  }
+  function forgetDetails() {
+    try {
+      localStorage.removeItem("nafiis-saved-contact-v1");
+      setSavedDetails(false); setStorageNotice("Saved details removed from this device.");
+    } catch { setStorageNotice("Unable to remove saved details. Use your browser's site-data settings."); }
+  }
 
   const split = checkIn !== null;
   const nights = checkIn && checkOut ? Math.round((Date.parse(checkOut.date) - Date.parse(checkIn.date)) / DAY_MS) : 0;
@@ -84,18 +105,29 @@ export function QuickBooking({ action, rooms, className }: QuickBookingProps) {
     else if (checkIn.date < today) next.check_in = "Can't be in the past.";
     else if (!checkOut || checkOut.date <= checkIn.date) next.check_out = "Must be after check-in.";
     setErrors(next);
-    if (Object.keys(next).length === 0) setStep(2);
+    if (Object.keys(next).length === 0) {
+      try {
+        const saved = JSON.parse(localStorage.getItem("nafiis-saved-contact-v1") || "null");
+        if (saved && typeof saved.full_name === "string" && typeof saved.phone === "string" && typeof saved.email === "string") {
+          setContact(current => ({ full_name: current.full_name || saved.full_name.slice(0,120), phone: current.phone || saved.phone.slice(0,30), email: current.email || saved.email.slice(0,254) }));
+          setSavedDetails(true);
+        }
+      } catch { /* Optional device storage must never prevent a booking. */ }
+      setStep(2);
+    }
   }
 
   const roomLabel = rooms.find((option) => option.value === room)?.label ?? "";
   const guestsLabel = GUEST_OPTIONS.find((option) => option.value === guests)?.label;
+  const readyForPayment = Boolean(state.success && state.bookingId);
 
   return (
     <div className={cn("flex flex-col items-center gap-3", className)}>
       <Card className="flex w-full flex-col gap-4 p-4 shadow-[0_24px_60px_-28px_rgb(20_32_43/0.45)] md:p-5">
+        <BookingSteps current={readyForPayment ? 3 : step} />
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h2 className="font-display text-[22px] leading-7 font-normal">
-            {step === 1 ? "Book your stay" : "Who is the booking for?"}
+            {readyForPayment ? "Your stay is saved. Next, payment." : step === 1 ? "Choose your stay" : "Add your guest details"}
           </h2>
           <p className="flex min-w-0 items-baseline gap-2 text-xs text-muted">
             {step === 2 && (
@@ -106,13 +138,13 @@ export function QuickBooking({ action, rooms, className }: QuickBookingProps) {
                 · {nights} {nights === 1 ? "night" : "nights"} · {guestsLabel} · {roomLabel}
               </span>
             )}
-            <span className="shrink-0 font-semibold uppercase tracking-[0.16em] text-accent">Step {step}/2</span>
+            <span className="shrink-0 font-semibold uppercase tracking-[0.16em] text-accent">Step {readyForPayment ? 3 : step}/3</span>
           </p>
         </div>
 
         <form action={formAction} noValidate className="flex flex-col gap-3">
           {/* Both steps stay in the form so one submit sends everything; `hidden` only hides one. */}
-          <div hidden={step !== 1} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)_minmax(0,1.25fr)_auto]">
+          <div hidden={step !== 1 || readyForPayment} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)_minmax(0,1.25fr)_auto]">
             <div className={cn("stay-split col-span-2 lg:col-span-1", split && "is-split")}>
               <DateTimeField
                 label="Check-in"
@@ -145,12 +177,13 @@ export function QuickBooking({ action, rooms, className }: QuickBookingProps) {
             <ListboxField label="Guests" name="guests" icon={Users} options={GUEST_OPTIONS} value={guests} onChange={setGuests} />
             <ListboxField label="Room" name="room_type" icon={BedDouble} options={rooms} value={room} onChange={setRoom} />
             <Button onClick={continueToDetails} className="col-span-2 w-full lg:col-span-1 lg:w-auto">
-              Continue
+              Guest details
               <ArrowRight aria-hidden />
             </Button>
           </div>
 
-          <div hidden={step !== 2} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[1.2fr_1fr_1.2fr_auto]">
+          {step === 2 && !readyForPayment && <p className="text-sm text-muted">Continue as a guest. You can save your details or create an account after your booking is saved.</p>}
+          <div hidden={step !== 2 || readyForPayment} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[1.2fr_1fr_1.2fr_auto]">
             <div className="col-span-2 lg:col-span-1">
               <Field
                 compact
@@ -159,7 +192,8 @@ export function QuickBooking({ action, rooms, className }: QuickBookingProps) {
                 icon={User}
                 autoComplete="name"
                 placeholder="Amina Hassan"
-                defaultValue={state.values?.full_name}
+                value={contact.full_name}
+                onChange={event => setContact(current => ({ ...current, full_name: event.target.value }))}
                 required
               />
             </div>
@@ -171,7 +205,8 @@ export function QuickBooking({ action, rooms, className }: QuickBookingProps) {
               icon={Phone}
               autoComplete="tel"
               placeholder="+252 61 234 5678"
-              defaultValue={state.values?.phone}
+              value={contact.phone}
+              onChange={event => setContact(current => ({ ...current, phone: event.target.value }))}
               required
             />
             <Field
@@ -182,18 +217,32 @@ export function QuickBooking({ action, rooms, className }: QuickBookingProps) {
               icon={Mail}
               autoComplete="email"
               placeholder="you@example.com"
-              defaultValue={state.values?.email}
+              value={contact.email}
+              onChange={event => setContact(current => ({ ...current, email: event.target.value }))}
             />
             <div className="col-span-2 flex gap-2 lg:col-span-1 lg:mt-6">
               <Button variant="ghost" onClick={() => setStep(1)} aria-label="Back to your stay" className="w-11 shrink-0 px-0">
                 <ArrowLeft aria-hidden />
               </Button>
               <SubmitButton pending={pending} pendingLabel="Booking…" className="lg:w-auto">
-                Book now
+                Save & continue
               </SubmitButton>
             </div>
           </div>
 
+          {state.success && step === 2 && (
+            <div className="space-y-3">
+              <Alert status="success" title="Booking request saved">{state.success}</Alert>
+              {state.bookingId && <ButtonLink href={`/booking/${state.bookingId}`}>Continue to payment<ArrowRight aria-hidden /></ButtonLink>}
+              <p className="text-sm text-muted">Optional: remember your name, phone and email on this device. Avoid this on shared computers.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="secondary" onClick={rememberDetails}>Save details on this device</Button>
+                <ButtonLink variant="secondary" href="/register">Create an account (optional)</ButtonLink>
+              </div>
+            </div>
+          )}
+          {savedDetails && step === 2 && <Button type="button" variant="ghost" onClick={forgetDetails}>Forget saved details</Button>}
+          {storageNotice && step === 2 && <p role="status" className="text-sm text-muted">{storageNotice}</p>}
           {state.error && step === 2 && (
             <Alert status="info" title="Almost there">
               {state.error}

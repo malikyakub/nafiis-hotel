@@ -1,0 +1,10 @@
+# Use this Next.js directory as the Netlify project root.
+# Secrets belong in Netlify environment settings, never this file.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Netlify detects Next.js and installs its current OpenNext adapter automatically.

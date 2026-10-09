@@ -8,7 +8,7 @@ import { LoginForm } from "./login-form";
 export const metadata: Metadata = { title: "Sign in" };
 
 const MESSAGES: Record<string, { status: Status; text: string }> = {
-  "password-updated": { status: "success", text: "Password updated. Sign in with your new password." },
+  "password-updated": { status: "success", text: "Password updated. Request an email code to sign in." },
   "link-invalid": { status: "danger", text: "That link is invalid or has expired. Request a new one." },
 };
 

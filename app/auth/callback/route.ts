@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { siteOrigin } from "@/lib/site-origin";
 import { safeNextPath } from "@/lib/auth/roles";
 import { logError } from "@/lib/log";
 import { createServerClient } from "@/lib/supabase/server";
@@ -6,7 +7,8 @@ import { createServerClient } from "@/lib/supabase/server";
 // Landing point for Supabase email links (sign-up confirmation, password reset).
 // Exchanges the one-time code for a session cookie, then continues to ?next=.
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = siteOrigin(request.headers);
   const code = searchParams.get("code");
   const next = safeNextPath(searchParams.get("next")) ?? "/";
 

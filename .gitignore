@@ -30,6 +30,7 @@ supabase/.branches/
 .vercel
 
 # misc
+.chain-local/
 .DS_Store
 *.pem
 npm-debug.log*

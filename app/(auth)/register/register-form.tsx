@@ -9,6 +9,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { useFormAction } from "@/components/ui/use-form-action";
 import { cn } from "@/lib/cn";
 import { register } from "../actions";
+import { EmailCodeForm } from "../email-code-form";
 
 type RegisterFormProps = { header: React.ReactNode; footer: React.ReactNode };
 
@@ -105,6 +106,7 @@ export function RegisterForm({ header, footer }: RegisterFormProps) {
     }
   }
 
+  if (state.verification && state.values?.email) return <>{header}<EmailCodeForm email={state.values.email} mode={state.verification} /></>;
   if (state.success) {
     return (
       <ResultMessage
@@ -182,7 +184,7 @@ export function RegisterForm({ header, footer }: RegisterFormProps) {
             type="email"
             icon={Mail}
             autoComplete="email"
-            hint="We send a link here to confirm your account."
+            hint="We send a verification code here to confirm your account."
             required
             defaultValue={state.values?.email}
             error={errors.email}
