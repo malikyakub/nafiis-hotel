@@ -86,4 +86,3 @@ end $function$;
 -- Expired holds are ignored by availability and the constraint; keep their history.
 create or replace function public.release_unpaid_overlaps() returns trigger
 language plpgsql set search_path='' as $$ begin return null; end $$;
-
