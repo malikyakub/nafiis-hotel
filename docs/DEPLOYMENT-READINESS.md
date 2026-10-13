@@ -1,5 +1,17 @@
 # Deployment readiness
 
+## Production settings check — 13 October 2026
+
+Canonical hotel URL confirmed in the live browser: `https://nafiis-hotel.netlify.app/`. `.openai/hosting.json` points to the separate ChatGPT Sites demo, not this Netlify project. Keep the demo's identity and secrets separate. No publication is authorized by this configuration-only task.
+
+Supabase's Site URL is now saved as `https://nafiis-hotel.netlify.app/`. Exact allowed redirects are `/auth/callback`, `/auth/callback?next=/guest`, and `/auth/callback?next=/reset-password`, each under production, `http://127.0.0.1:4176`, and `http://localhost:4176`. Nine saved entries verified after reload; the prior list was empty. Reset email targets the callback with `next=/reset-password`; `/reset-password` is the callback destination, not an additional direct redirectTo requirement.
+
+Netlify production configuration remains pending account access. In the existing hotel's Netlify project set `SITE_URL=https://nafiis-hotel.netlify.app/`, the existing `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, one existing server-only `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`, plus `AMOY_RPC_URL`, `SYSTEM_WALLET_PRIVATE_KEY` and `PROOF_REGISTRY_ADDRESS`. Required private values already exist locally; enter them privately into the provider settings. No values were exposed or generated. `IDENTITY_ENCRYPTION_KEY` is not read by current application code and is not required for these flows.
+
+siteOrigin accepts the configured trailing slash but returns URL.origin without it. Authentication concatenation therefore produces one slash, and sameOrigin compares browser Origin against `https://nafiis-hotel.netlify.app`. A read-only local check passed these behaviors. Do not set production SITE_URL in the local development env: that would make local upload-origin checks use the production host.
+
+No Netlify environment changes could be saved because the account was signed out and the owner could not sign in. No deployment, Sites environment update or GitHub synchronization occurred. Settings persistence in Supabase is verified; hosted runtime/sign-in/reset/upload acceptance is still pending. The live Netlify site is an older application build, so configuring settings alone will not publish current source.
+
 ## Current handoff - 2026-10-09
 
 This section supersedes the historical preparation snapshots below. Amoy is funded and deployed; demo receipt approval, real booking proof confirmation and check-in passed. Customer isolation and concurrent booking checks passed. The bounded receipt parser regression, TypeScript and production build also passed. See `ACCEPTANCE-RESULTS.md` for evidence and limits.
