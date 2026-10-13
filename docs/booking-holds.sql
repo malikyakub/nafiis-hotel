@@ -1,3 +1,4 @@
+-- Superseded by booking-expiry-24h.sql (24-hour unpaid expiry, first receipt wins).
 -- Thirty-minute holds, enforced by a temporal exclusion constraint.
 -- Historical expired rows remain visible; no booking or payment is deleted.
 lock table public.bookings in access exclusive mode;
