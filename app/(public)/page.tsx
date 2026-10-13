@@ -52,8 +52,17 @@ const LOCATION: { icon: LucideIcon; text: React.ReactNode }[] = [
   { icon: Plane, text: `${contact.airportMinutes} minutes from Aden Adde International Airport` },
 ];
 
-export default async function HomePage() {
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const ROOM_TAKEN = "Another guest paid for the room you chose first, so your unpaid booking was cancelled. Do not send money for it. Please choose another room or dates below.";
+
+export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const ROOMS = await liveRooms();
+  // Set by the payment page when another guest's receipt was submitted first.
+  const query = await searchParams;
+  const roomTaken = query.notice === "room_taken";
+  const checkIn = typeof query.check_in === "string" && DAY.test(query.check_in) ? query.check_in : null;
+  const checkOut = typeof query.check_out === "string" && DAY.test(query.check_out) ? query.check_out : null;
+  const initialStay = roomTaken && checkIn && checkOut ? { check_in: checkIn, check_out: checkOut } : undefined;
   return (
     <>
       {/* Hero */}
@@ -95,7 +104,7 @@ export default async function HomePage() {
         className="relative z-10 -mt-[var(--qb-overlap)] scroll-mt-28 [--qb-overlap:125px] lg:[--qb-overlap:65px]"
       >
         <Container className="animate-hero-in [animation-delay:320ms]">
-          <QuickBooking action={requestBooking} rooms={ROOM_OPTIONS} />
+          <QuickBooking action={requestBooking} rooms={ROOM_OPTIONS} initialStay={initialStay} notice={roomTaken ? ROOM_TAKEN : undefined} />
         </Container>
       </section>
 

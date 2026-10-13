@@ -18,6 +18,9 @@ type QuickBookingProps = {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   rooms: ListboxOption[];
   className?: string;
+  /** Dates carried back when another guest paid for the chosen room first. */
+  initialStay?: { check_in: string; check_out: string };
+  notice?: string;
 };
 
 const GUEST_OPTIONS: ListboxOption[] = [1, 2, 3, 4, 5, 6].map((n) => ({
@@ -59,12 +62,14 @@ type StayErrors = Partial<Record<"check_in" | "check_out", string>>;
 // Stay and contact details lead into the third step on the private payment page.
 // No account needed; the guest is offered
 // to remember their contact details on this device after booking, never before.
-export function QuickBooking({ action, rooms, className }: QuickBookingProps) {
+export function QuickBooking({ action, rooms, className, initialStay, notice }: QuickBookingProps) {
   const [state, formAction, pending] = useActionState(action, initialFormState);
   const [step, setStep] = useState<1 | 2>(1);
   const [today] = useState(() => isoDay(new Date()));
-  const [checkIn, setCheckIn] = useState(() => restore(state.values?.check_in, state.values?.check_in_time));
-  const [checkOut, setCheckOut] = useState(() => restore(state.values?.check_out, state.values?.check_out_time));
+  const [checkIn, setCheckIn] = useState(() => restore(state.values?.check_in, state.values?.check_in_time)
+    ?? (initialStay && initialStay.check_in >= today ? { date: initialStay.check_in, time: DEMO.checkIn } : null));
+  const [checkOut, setCheckOut] = useState(() => restore(state.values?.check_out, state.values?.check_out_time)
+    ?? (initialStay && initialStay.check_in >= today && initialStay.check_out > initialStay.check_in ? { date: initialStay.check_out, time: DEMO.checkOut } : null));
   const [guests, setGuests] = useState(state.values?.guests ?? "2");
   const [room, setRoom] = useState(state.values?.room_type ?? rooms[0]?.value ?? "");
   const [errors, setErrors] = useState<StayErrors>({});
@@ -142,6 +147,7 @@ export function QuickBooking({ action, rooms, className }: QuickBookingProps) {
           </p>
         </div>
 
+        {notice && !readyForPayment && <Alert status="warning" title="Someone else paid first">{notice}</Alert>}
         <form action={formAction} noValidate className="flex flex-col gap-3">
           {/* Both steps stay in the form so one submit sends everything; `hidden` only hides one. */}
           <div hidden={step !== 1 || readyForPayment} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)_minmax(0,1.25fr)_auto]">

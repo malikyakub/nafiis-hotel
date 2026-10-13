@@ -5,6 +5,12 @@ import { requireRole } from "@/lib/auth/require-role";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { failure, json, sameOrigin } from "@/lib/http";
 import { hasGuestCheckout } from "@/lib/guest-checkout";
+import { PAYMENT_BLOCK_MESSAGES, refreshPaymentState, type PaymentBlock } from "@/lib/bookings";
+
+type Stay = { check_in: string; check_out: string };
+// Machine-readable so the browser can send the guest back to choose another room.
+const blocked = (code: PaymentBlock, stay: Stay) =>
+  json({ error: PAYMENT_BLOCK_MESSAGES[code], code, check_in: stay.check_in, check_out: stay.check_out }, 409);
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -15,10 +21,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const session = anonymous ? null : await requireRole("guest");
     const admin = createAdminClient();
     const supabase = session?.supabase || admin;
-    const { data: booking, error } = await supabase.from("bookings").select("id,status,hold_expires_at").eq("id", id).maybeSingle();
+    const { data: booking, error } = await supabase.from("bookings").select("id,status,check_in,check_out").eq("id", id).maybeSingle();
     if (error || !booking) return json({ error: "Booking unavailable." }, 404);
-    if (booking.status !== "pending_payment") return json({ error: "This booking is not awaiting payment." }, 409);
-    if (!booking.hold_expires_at || Date.parse(booking.hold_expires_at) <= Date.now()) return json({error:"Payment window expired. Do not send money. Create a new booking first."},409);
+    // Ownership is established above; now apply the 24-hour and first-receipt-wins rules.
+    const state = await refreshPaymentState(id);
+    if (state?.code) return blocked(state.code, booking);
+    if (state?.status !== "pending_payment") return json({ error: "This booking is not awaiting payment." }, 409);
     const form = await boundedFormData(request, MAX_RECEIPT_REQUEST_BYTES);
     const referenceValue = form.get("reference");
     const reference = typeof referenceValue === "string" ? referenceValue.trim() : "";
@@ -37,6 +45,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     });
     if (submitError) {
       await admin.storage.from("payment-proofs").remove([path]);
+      // Another receipt may have been submitted for this room while this one uploaded.
+      const after = await refreshPaymentState(id);
+      const code: PaymentBlock | null = after?.code
+        || (submitError.code === "23P01" || /Room taken/.test(submitError.message) ? "room_taken"
+          : /Payment window expired/.test(submitError.message) ? "expired" : null);
+      if (code) return blocked(code, booking);
       return json({ error: "Payment could not be submitted. Refresh the booking; its availability may have changed." }, 409);
     }
     return json({ paymentId:data, status:"submitted" },201);
