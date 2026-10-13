@@ -2,7 +2,9 @@
 
 ## Latest deployment status
 
-Amoy contract deployed and verified on 2026-10-08: 0x1AedE4EB72E3798F1Ed6fDa8752658E4eCA1E9A9. Deployment transaction: https://amoy.polygonscan.com/tx/0x1343cbbea63bd37bcb1ed70013259bf44a8d2590d92e830cf0fff91bb4744fd9. Script verified successful receipt, at least three confirmations, canonical block, deployed code and matching registrar. Owner funded the wallet with 0.1 test POL. Public RPC batching caused the first attempt to fail before signing; deployment now uses individual requests. Saved PROOF_REGISTRY_ADDRESS locally and development server reloaded .env.local. No real money used. The booking-to-chain workflow has not yet been exercised; no existing booking was changed by deployment.
+Amoy contract deployed and verified on 2026-10-08: `0x1AedE4EB72E3798F1Ed6fDa8752658E4eCA1E9A9`. Deployment transaction: https://amoy.polygonscan.com/tx/0x1343cbbea63bd37bcb1ed70013259bf44a8d2590d92e830cf0fff91bb4744fd9. Script verified successful receipt, at least three confirmations, canonical block, deployed code and matching registrar. This address and the deployment steps below are historical setup records.
+
+The demo booking proof flow was exercised on Amoy on 2026-10-08. The retained demo booking was checked in and then checked out by the owner; read-only verification on 2026-10-09 confirmed `checked_out`, approved payment, and confirmed proof. The receipt was a demo fixture and no real EVC/eDahab transfer occurred. Do not count the demo booking as revenue. This did not verify a real mobile-money transfer, production hosting configuration, or live customer/receptionist acceptance. Do not repeat the demo transaction as part of code review.
 
 Earlier setup notes below are historical where they say funding or deployment is missing. Host environment configuration is still required separately.
 
@@ -17,7 +19,7 @@ bank transfer was genuine. Staff must check their payment account themselves.
 
 ## Local setup
 
-Current local setup (2026-10-08): a dedicated Amoy test wallet has been generated and saved only in ignored `.env.local`. Public address: `0x67f13E9D8308ef33E7Bc9990Fd1F577e0D701485`. The public RPC `https://polygon-amoy.drpc.org` returned chain 80002 and a balance of 0 test POL. No deployment transaction has been sent. Faucet access stopped at browser security verification; the owner must complete it and request free Amoy test POL. Never send real funds to this demo wallet.
+Historical setup note (2026-10-08): a dedicated Amoy test wallet was generated locally. Its private key belongs only in ignored `.env.local`; the public address was `0x67f13E9D8308ef33E7Bc9990Fd1F577e0D701485`. The wallet was subsequently funded with test POL for deployment. Never send real funds to this demo wallet.
 
 `npm run chain:setup` (or `node contracts/scripts/setup-amoy.mjs`) prepares missing local wallet/RPC values without replacing an existing key, and reports only the public address and balance. It refuses to create a replacement wallet if a deployment record/address already exists. Keep a secure local backup of the private key; it is excluded from source archives. Once funded, run `./deploy-blockchain.ps1` and save its confirmed registry address locally.
 
@@ -92,11 +94,12 @@ requires an intentional new deployment and a migration plan.
 
 ## Delivery status
 
-Contract source, deployment command, backend, portals and Supabase migration are
-implemented. Solidity and TypeScript compilation are separate from live-chain
-verification. No contract deployment or live booking transaction has been made
-by this implementation yet. A funded wallet, server key and deployed address
-must be configured locally. No automated/end-to-end tests have been run.
+Contract source, deployment command, backend, portals and the Supabase schema
+are implemented. The Amoy deployment and the demo booking proof/checkout were
+verified as described above. This confirms only the demo path and test network;
+it does not prove receipt authenticity or production readiness. Hosted
+environment settings must be configured separately. Automated tests were not
+run during the 2026-10-11 blockchain review.
 
 Migration record: `booking_only_amoy_proofs`, mirrored in
 `docs/booking-blockchain.sql`. Do not rerun it on the existing project.

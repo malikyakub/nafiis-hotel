@@ -65,12 +65,12 @@ export function GuestPayment({id}:{id:string}) {
      <p className="mt-2 text-muted">Use your mobile-money app or service to send the exact total to one of the hotel accounts below. Check the receiving name before confirming. This website will never ask for your PIN.</p>
      <div className="mt-4 grid gap-4 sm:grid-cols-2">{[{name:"EVC Plus",number:settings.evc_number,holder:settings.evc_name},{name:"eDahab",number:settings.edahab_number,holder:settings.edahab_name}].map(method=><div key={method.name} className="rounded-2xl border border-border p-4"><h3 className="font-semibold">{method.name}</h3>{method.number?<><p className="mt-2 text-xl">{method.number}</p>{method.holder&&<p>{method.holder}</p>}</>:<p className="mt-2 text-sm text-muted">The hotel has not configured this payment account yet. Do not send payment until the receiving details appear.</p>}</div>)}</div>
      {settings.payment_instructions&&<p className="mt-4 whitespace-pre-wrap text-sm">{settings.payment_instructions}</p>}
-     <p className="mt-3 text-sm">Keep your transaction reference and screenshot.</p>
+     <p className="mt-3 text-sm">Keep the receipt or transaction number shown by your mobile-money service.</p>
     </Card>
     <Card><h2 className="font-display text-2xl">Upload your payment screenshot</h2>
      <form className="mt-4 space-y-4" onSubmit={submit}>
       <Field name="proof" label="Screenshot or receipt" type="file" icon={Upload} accept="image/png,image/jpeg,application/pdf" required hint="PNG, JPEG or PDF, up to 4 MB."/>
-      <Field name="reference" label="Transaction reference (optional)" icon={FileText} maxLength={120}/>
+      <Field name="reference" label="Receipt / transaction number" icon={FileText} maxLength={120} required hint="Enter the number shown on your payment receipt."/>
       <Button type="submit" disabled={busy}>{busy?"Uploading…":"Submit payment screenshot"}</Button>
      </form>
     </Card>

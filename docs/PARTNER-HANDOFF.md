@@ -10,7 +10,7 @@ Verified: TypeScript/production build, upload limits, request origins/private co
 
 ## Remaining tasks
 
-1. **Email delivery, deferred by owner:** connect custom SMTP and update Confirm signup/Magic Link templates. Email-code login is not operational until then. Follow EMAIL-VERIFICATION.md; enter secrets privately in the provider/dashboard.
+1. **Registration email delivery, deferred by owner:** connect custom SMTP and update the Confirm signup template. Login uses email/password and needs no OTP delivery. Follow EMAIL-VERIFICATION.md; enter secrets privately in the provider/dashboard. Password recovery retains its existing verification flow.
 2. **Staff acceptance:** exercise a real receptionist session and receipt rejection/cancellation/room release with labelled demo data. Three receptionist email addresses are pending; admin adds verified users through the portal.
 3. **Elapsed expiry:** verify a real 30-minute hold boundary and late-upload rejection. Existing checks cover duration and overlap, not actual elapsed expiry.
 4. **Hosting:** configure final HTTPS SITE_URL, environment secrets and Supabase callback/reset URLs; test login/register/reset and booking/payment/proof on the final domain.

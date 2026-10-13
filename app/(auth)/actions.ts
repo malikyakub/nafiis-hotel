@@ -8,6 +8,8 @@ import { ROLE_HOME, safeNextPath, type AppRole } from "@/lib/auth/roles";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createServerClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/log";
+import { createClient } from "@supabase/supabase-js";
+import { supabasePublicEnv } from "@/lib/supabase/env";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[\d\s-]{7,20}$/;
@@ -28,102 +30,33 @@ function failure(error: unknown, values?: Record<string, string>): FormState {
 
 export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
   const email = text(formData, "email").toLowerCase();
-  if (!EMAIL_RE.test(email) || email.length > 254) return { error: "Enter a valid email address.", values: { email } };
-  try {
-    const supabase = await createServerClient();
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-    if (error) return { error: error.status === 429 ? "Please wait before requesting another code." : "Could not send a code. Check your email, or create an account first.", values: { email } };
-    return { success: "Check your inbox for your verification code.", verification: "login", values: { email } };
-  } catch (error) { return failure(error, { email }); }
-}
-
-export async function verifyEmailCode(_prev: FormState, formData: FormData): Promise<FormState> {
-  const email = text(formData, "email").toLowerCase();
-  const token = text(formData, "token");
-  if (!EMAIL_RE.test(email) || email.length > 254 || !/^[0-9]{6,10}$/.test(token)) return { error: "Enter the verification code from your email." };
+  const password = String(formData.get("password") ?? "");
+  const values = { email };
+  if (!EMAIL_RE.test(email) || email.length > 254 || !password) return { error: "Enter your email and password.", values };
   let destination: string;
   try {
+    // Authenticate without browser cookies first, then check the active profile.
+    // Login never requests or sends an email verification code.
+    const { url, anonKey } = supabasePublicEnv();
+    const isolated = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+    const { data, error } = await isolated.auth.signInWithPassword({ email, password });
+    if (error?.status === 429) return { error: "Too many sign-in attempts. Wait before trying again.", values };
+    if (error || !data.user || !data.session) return { error: error?.code === "email_not_confirmed" ? "Complete your account registration before signing in." : "Email or password is incorrect.", values };
+    const { data: profile, error: profileError } = await isolated.from("profiles").select("role,is_active")
+      .eq("id", data.user.id).single<{ role: AppRole; is_active: boolean }>();
+    if (profileError || !profile?.is_active || !Object.hasOwn(ROLE_HOME, profile.role)) {
+      await isolated.auth.signOut({ scope: "local" });
+      return { error: "This account is unavailable. Contact the hotel.", values };
+    }
     const supabase = await createServerClient();
-    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
-    if (error || !data.user || !data.session) return { error: "The code is incorrect or expired. Try again or request a new code." };
-    const { data: profile, error: profileError } = await supabase.from("profiles")
-      .select("role,is_active").eq("id", data.user.id).single<{ role: AppRole; is_active: boolean }>();
-    if (profileError || !profile || !profile.is_active || !Object.hasOwn(ROLE_HOME, profile.role)) {
-      await supabase.auth.signOut();
-      return { error: "This account is unavailable. Contact the hotel." };
+    const { error: sessionError } = await supabase.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+    if (sessionError) {
+      await isolated.auth.signOut({ scope: "local" });
+      return { error: "Could not complete sign-in. Please try again.", values };
     }
     destination = safeNextPath(formData.get("next")) ?? ROLE_HOME[profile.role];
-  } catch (error) { return failure(error); }
+  } catch (error) { return failure(error, values); }
   redirect(destination);
-}
-
-export async function resendEmailCode(_prev: FormState, formData: FormData): Promise<FormState> {
-  const email = text(formData, "email").toLowerCase();
-  if (!EMAIL_RE.test(email) || email.length > 254) return { error: "Enter a valid email address." };
-  try {
-    const supabase = await createServerClient();
-    const { error } = text(formData, "mode") === "signup"
-      ? await supabase.auth.resend({ type: "signup", email })
-      : await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-    if (error) return { error: error.status === 429 ? "Please wait before requesting another code." : "Could not resend the code. Please try again later." };
-    return { success: "A new code has been requested. Use the latest email." };
-  } catch (error) { return failure(error); }
-}
-
-export async function register(_prev: FormState, formData: FormData): Promise<FormState> {
-  const fullName = text(formData, "full_name");
-  const phone = text(formData, "phone");
-  const email = text(formData, "email").toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  const confirm = String(formData.get("confirm_password") ?? "");
-  const values = { full_name: fullName, phone, email };
-
-  if (fullName.length < 2) return { error: "Enter your full name.", field: "full_name", values };
-  if (phone && !PHONE_RE.test(phone)) return { error: "Check the phone number.", field: "phone", values };
-  if (!EMAIL_RE.test(email)) return { error: "Enter a valid email address.", field: "email", values };
-  if (password.length < MIN_PASSWORD) {
-    return { error: `Password must be at least ${MIN_PASSWORD} characters.`, field: "password", values };
-  }
-  if (password !== confirm) return { error: "Passwords do not match.", field: "confirm_password", values };
-
-  let verification: "signup" | "login" = "signup";
-  try {
-    const supabase = await createServerClient();
-    const origin = await siteOrigin();
-    // Every sign-up is a guest. The signup trigger (DB agent, TASK-8) creates
-    // profile + guest + wallet and reads full_name and phone from this metadata.
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${origin}/auth/callback?next=${ROLE_HOME.guest}`,
-        data: { full_name: fullName, phone: phone || null },
-      },
-    });
-
-    if (error) {
-      if (error.code === "weak_password") {
-        return { error: "That password is too weak. Try a longer one.", field: "password", values };
-      }
-      if (error.code === "user_already_exists") {
-        return { error: "An account with this email already exists. Sign in instead.", field: "email", values };
-      }
-      return { error: "Could not create the account. Please try again.", values };
-    }
-
-    // Even if project email confirmation is disabled, require an email code
-    // before this form grants access. Do not return the signup session.
-    if (data.session) {
-      await supabase.auth.signOut();
-      const { error: codeError } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-      if (codeError) return { error: "Account created, but the code could not be sent. Go to sign in and request a code.", values };
-      verification = "login";
-    }
-  } catch (error) {
-    return failure(error, values);
-  }
-
-  return { success: "Check your inbox for your verification code.", verification, values: { email } };
 }
 
 export async function requestPasswordReset(

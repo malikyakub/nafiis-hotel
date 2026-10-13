@@ -1,34 +1,21 @@
-# Email code verification
+# Registration email verification
 
-Implemented locally on 2026-10-09. Login uses email + one-time code, without a password. Registration retains the existing password fields and adds email-code verification afterward. This is passwordless email login, not a password-plus-code second factor. Existing Supabase passwords and accounts are not deleted. Existing sessions remain active.
+Updated 13 October 2026. Routine login is registered email + password for guests and existing staff. No login OTP is requested, sent or entered. Supabase checks the password; the server checks an active profile before setting the session and redirecting to its dashboard. Provider rate limits and protected routes remain in place.
 
-## Required Supabase dashboard configuration
+## Separate flows retained
 
-These settings have not been changed or verified by the assistant. The connected Supabase tools do not expose Auth email-template/SMTP configuration.
+- New guest registration: account details/password, then signup email verification through RegistrationCodeForm and registration-actions.ts. Resend calls Supabase signup resend only.
+- Password recovery: existing reset email/callback and password update remain unchanged.
+- Administrator and receptionist access: existing active role checks and password credentials remain unchanged. No staff provisioning or security-setting changes were made.
 
-1. Open the Nafiis Hotel project's Authentication email templates.
-2. Update both **Confirm signup** and **Magic Link** templates to display `{{ .Token }}`. Copy the HTML below into each template. Use a subject such as `Your Nafiis Hotel verification code`.
-3. Keep email confirmation enabled. Set the OTP expiration to a short period, for example 10 minutes. The form accepts 6–10 digits to accommodate the project's OTP length setting.
-4. Configure custom SMTP for delivery to customers. Supabase's default sender restricts recipients to project team addresses and has a low email rate limit. Configure the provider credentials privately in the dashboard, not source code or chat.
-5. Keep the existing Site URL and allowed callback URLs correct for password reset. Codes themselves are entered on the website.
+If Supabase automatically confirms a new signup and returns a session, registration signs out and reports a configuration problem. It does not fall back to sending a login OTP. Configure signup email confirmation before launching this registration flow.
 
-```html
-<h2>Your Nafiis Hotel verification code</h2>
-<p>Enter this code on the hotel website:</p>
-<p style="font-size:28px;font-weight:bold;letter-spacing:4px">{{ .Token }}</p>
-<p>If you did not request this email, you can ignore it. Do not share this code.</p>
-```
+## Deferred signup delivery setup
 
-## Behavior
+The owner postponed email-provider/domain/SMTP setup. The last dashboard inspection showed SMTP disabled. No email settings were changed in the login update. For signup code delivery, configure custom SMTP and the Confirm signup template to display {{ .Token }}. Magic Link/login templates are not required by this application. Keep password recovery templates and callback configuration intact. Enter provider secrets privately in Supabase, never in source or chat.
 
-- Login calls signInWithOtp with shouldCreateUser:false, so login never creates an account.
-- Registration sends the signup verification email; if automatic confirmation is enabled, it signs out the newly returned session and requests a login code instead.
-- Verification uses Supabase verifyOtp. Only a successful code and an active, recognized profile permit the role-specific redirect. Existing role/RLS controls remain in place.
-- Resend uses signup resend or login OTP as appropriate. Supabase enforces expiry and rate limits. Codes and passwords are never returned in form state or logged.
-- Anonymous hotel booking still does not require an account.
+## Verified behavior
 
-## Pending live acceptance
+The actual local preview passed password login, guest dashboard redirect, logout and protected-route denial using one temporary confirmed guest account. Wrong passwords and disabled profiles were denied. The fixture was removed. No test email was sent. See ACCEPTANCE-RESULTS.md for details. Signup/recovery email delivery and hosted production acceptance remain unverified.
 
-Verify delivery to an authorized test mailbox, wrong/expired code rejection, resend, a newly registered guest and an existing staff account. No email was sent by the assistant and live delivery is not verified. Do not describe this feature as operational until templates/delivery are configured.
-
-References: https://supabase.com/docs/guides/auth/auth-email-passwordless , https://supabase.com/docs/guides/auth/auth-email-templates , https://supabase.com/docs/guides/auth/auth-smtp
+References: https://supabase.com/docs/guides/auth/passwords , https://supabase.com/docs/guides/auth/auth-email-templates , https://supabase.com/docs/guides/auth/auth-smtp

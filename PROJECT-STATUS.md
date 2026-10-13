@@ -1,5 +1,15 @@
 # Nafiis Hotel — source handoff status
 
+## Latest source update — 13 October 2026
+
+The owner requested publishing the remaining local hotel work for partner review. This update includes password-only login for all roles, signup-only email codes, receipt/transaction-number validation, front-desk availability/capacity checks, report date validation, housekeeping filters and the three workstream reviews. Existing frontend styling and assets are preserved. Recovery and role/session checks remain intact.
+
+Previously completed local verification: login/logout and guest access isolation passed; TypeScript and the production build passed on 13 October. No new tests were run for this source upload. Signup email delivery remains deferred. The review documents record unresolved database capacity/expiry guards and acceptance work; the project is not described as production-ready.
+
+Hosting: the user's new Netlify project is `nafiis-hotel-anzaar`, owned by team `anzaarx`. It has no verified application deployment. Required private environment settings, new Supabase redirects and hosted checks remain pending. Existing Supabase URLs still target `https://nafiis-hotel.netlify.app/` plus supported local callbacks. The earlier Netlify preview failed and Vercel was blocked; their underlying reasons could not be read with the available account access.
+
+Source target: existing `feature/predeployment-handoff`, with PR #6 available for partner review. This upload does not merge main, deploy production or publish ChatGPT Sites. Earlier sections below describe the preceding configuration-only handoff and are superseded where they say newer local source is excluded.
+
 Updated 13 October 2026. This snapshot records the production configuration task. The coordinating workspace retains the complete local project history separately.
 
 ## Supabase configuration — saved and verified

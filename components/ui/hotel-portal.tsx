@@ -136,7 +136,7 @@ export function HotelPortal({ role }: { role: "guest" | "admin" | "receptionist"
           {role === "guest" && booking.status === "pending_payment" && Date.parse(booking.hold_expires_at)>now && <form className="space-y-3 border-t border-border pt-4" onSubmit={e => upload(e, booking.id)}>
             <p className="text-sm text-muted">After paying using the hotel’s instructions, upload your receipt for review.</p>
             <Field id={`proof-${booking.id}`} label="Payment receipt" name="proof" icon={Upload} type="file" accept="image/png,image/jpeg,application/pdf" required hint="PNG, JPEG or PDF, up to 4 MB." />
-            <Field id={`reference-${booking.id}`} label="Transfer reference (optional)" name="reference" icon={FileText} maxLength={120} />
+            <Field id={`reference-${booking.id}`} label="Receipt / transaction number" name="reference" icon={FileText} maxLength={120} required hint="Enter the number shown on your payment receipt." />
             <Button type="submit" disabled={busy}>Submit receipt</Button>
           </form>}
           {role !== "guest" && ["confirmed", "checked_in"].includes(booking.status) && <Button disabled={busy} onClick={() => mutate(`/api/staff/bookings/${booking.id}`, { method: "PATCH", headers: {"Content-Type":"application/json"}, body: JSON.stringify({status: booking.status === "confirmed" ? "checked_in" : "checked_out"}) }, "Booking updated.")}>{booking.status === "confirmed" ? "Check in" : "Check out"}</Button>}

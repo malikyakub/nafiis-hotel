@@ -28,6 +28,9 @@ supabase/.branches/
 
 # vercel
 .vercel
+.netlify/
+.deployment/
+*.zip
 
 # misc
 .chain-local/

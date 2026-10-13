@@ -20,6 +20,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (booking.status !== "pending_payment") return json({ error: "This booking is not awaiting payment." }, 409);
     if (!booking.hold_expires_at || Date.parse(booking.hold_expires_at) <= Date.now()) return json({error:"Payment window expired. Do not send money. Create a new booking first."},409);
     const form = await boundedFormData(request, MAX_RECEIPT_REQUEST_BYTES);
+    const referenceValue = form.get("reference");
+    const reference = typeof referenceValue === "string" ? referenceValue.trim() : "";
+    if (!reference) return json({ error: "Enter the receipt or transaction number shown by your payment service." }, 400);
+    if (reference.length > 120) return json({ error: "Receipt or transaction numbers must be 120 characters or fewer." }, 400);
     const file = form.get("proof");
     if (!(file instanceof File) || !file.size || file.size > MAX_RECEIPT_BYTES) return json({ error: "Choose a PNG, JPEG or PDF under 4 MB." }, 400);
     const bytes = Buffer.from(await file.arrayBuffer());
@@ -29,7 +33,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const { error: uploadError } = await admin.storage.from("payment-proofs").upload(path, bytes, { contentType: ext==="jpg"?"image/jpeg":ext==="png"?"image/png":"application/pdf", upsert:false });
     if (uploadError) throw new Error("Payment attachment upload failed.");
     const { data, error: submitError } = await admin.rpc(anonymous ? "submit_guest_booking_payment" : "submit_booking_payment", {
-      p_booking:id, ...(!anonymous ? { p_customer:session!.user.id } : {}), p_object:path, p_reference:String(form.get("reference")||"").slice(0,120),
+      p_booking:id, ...(!anonymous ? { p_customer:session!.user.id } : {}), p_object:path, p_reference:reference,
     });
     if (submitError) {
       await admin.storage.from("payment-proofs").remove([path]);

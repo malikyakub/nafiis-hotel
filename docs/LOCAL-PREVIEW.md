@@ -6,7 +6,7 @@ Run ./start-local.ps1 in PowerShell, or npm run dev -- --hostname 127.0.0.1 --po
 
 ## Current limitations
 
-Login now uses an email code. SMTP and email templates are not configured; the owner deferred setup. See EMAIL-VERIFICATION.md. Existing passwords/accounts remain, but the login screen uses codes. Do not treat login as operational before email setup.
+Login uses registered email and password. No login code is sent or entered. Guest registration verification and password recovery still use their existing email flows; signup SMTP/template setup remains deferred. See EMAIL-VERIFICATION.md. The Friday preview on port 4176 received the same login correction on 2026-10-13.
 
 The shared database has 30 demo rooms and the Amoy demo flow passed through checkout. A new checkout still needs private environment configuration. Do not reset the shared database or redeploy the contract merely to run the app.
 

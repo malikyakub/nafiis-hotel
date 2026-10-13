@@ -1,4 +1,10 @@
 # Local acceptance results - 2026-10-08
+## Password login and logout — 2026-10-13
+
+Tested the actual Next.js HTTP Server Actions on port 4176 using one temporary confirmed guest account, a random password and a separate cookie jar. Login rendered email/password and no OTP field. Wrong password returned denial without auth cookies. Correct password installed the session and redirected to /guest; the dashboard returned HTTP 200. /admin denied the guest. Logout cleared auth cookies, redirected to /login, and /guest then redirected to login. Disabling only the temporary profile prevented another login. Fixture Auth user, profile, guest and wallet were removed. No email, booking or chain transaction was sent. No existing user account/session was changed.
+
+Reproducible authorized check: `node --env-file=.env.local contracts/scripts/check-password-login.mjs` from the original project while the Friday preview is running. It creates and cleans up a labelled fixture; it is not a read-only command. Provider rate limits were preserved, not load-tested. Recovery and administrator controls were left intact; no real administrator credentials or recovery emails were used.
+
 ## Checkout verified - 2026-10-09
 
 Owner clicked Check out for demo BK-000002 and reported done. Read-only database verification returned checked_out, payment approved and proof confirmed; booking updated_at was 2026-10-09 08:03:48.412655 UTC. Notion checkout task marked complete. This supersedes earlier pending-checkout notes. No real mobile-money payment, assistant booking mutation or new chain transaction. Live receptionist/rejection, elapsed-expiry and hosted checks remain pending.

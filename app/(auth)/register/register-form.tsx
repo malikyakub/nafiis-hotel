@@ -8,8 +8,8 @@ import { ResultMessage } from "@/components/ui/result-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { useFormAction } from "@/components/ui/use-form-action";
 import { cn } from "@/lib/cn";
-import { register } from "../actions";
-import { EmailCodeForm } from "../email-code-form";
+import { register } from "../registration-actions";
+import { RegistrationCodeForm } from "../registration-code-form";
 
 type RegisterFormProps = { header: React.ReactNode; footer: React.ReactNode };
 
@@ -106,7 +106,7 @@ export function RegisterForm({ header, footer }: RegisterFormProps) {
     }
   }
 
-  if (state.verification && state.values?.email) return <>{header}<EmailCodeForm email={state.values.email} mode={state.verification} /></>;
+  if (state.verification && state.values?.email) return <>{header}<RegistrationCodeForm email={state.values.email} /></>;
   if (state.success) {
     return (
       <ResultMessage
