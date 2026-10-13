@@ -31,8 +31,9 @@ Updated 2026-10-08. This is the original Next.js application, not the older root
 
 - 30 demo rooms: Room 001–010 Garden ($75, 2 guests), Room 011–018 Ocean ($95, 2 guests), Room 019–030 Family suite ($160, 5 guests).
 - Account-optional booking and private screenshot uploads, staff review, customer history and management portals.
-- New unpaid reservations hold a room for 30 minutes. A database temporal exclusion constraint prevents overlapping active holds/reservations. Expired holds remain in history but no longer block inventory; their payment uploads are rejected. Successful submission before expiry keeps the room reserved for review. Repeating an expired checkout creates a fresh booking.
-- A countdown appears on the private payment page; expired payment instructions and upload controls are hidden. Guests who already paid after expiry must have the hotel resolve the payment before paying again.
+- Unpaid (pending_payment) bookings do not reserve a room; several guests may hold unpaid bookings for the same room and dates. The first receipt submitted reserves the room (payment_submitted, under_review, confirmed and checked_in block it, enforced by a database exclusion constraint) and cancels overlapping unpaid bookings with "Room taken by another paid booking". A later guest is sent back to the booking form with their dates. A submitted receipt never expires.
+- Unpaid bookings are cancelled 24 hours after creation ("Payment not received within 24 hours"), lazily on every read/submit path; `expire_unpaid_bookings()` can be scheduled with pg_cron. Apply docs/booking-expiry-24h.sql before testing this build.
+- Payment approval and booking-proof chain writes are administrator only. Receptionists see payment status but cannot approve, reject or run proofs.
 - Production authentication redirects and mutation origin checks require the operator's exact HTTPS `SITE_URL`. Arbitrary forwarded hosts are not accepted.
 
 ## Hosting setup still required
@@ -58,10 +59,10 @@ Staff verifies the actual mobile-money receipt/funds; blockchain records the app
 ## Acceptance checks still required before public use
 
 - Create a booking without an account, confirm its deadline and room/category, then check another browser cannot access its receipt page by ID alone.
-- Submit a demo-labelled receipt before expiry; admin/reception should see it privately. Do not transfer real money just to test.
+- Submit a demo-labelled receipt before expiry; admin should review it privately; reception sees status only. Do not transfer real money just to test.
 - Verify rejection requires a note and cancels the booking. Verify approval remains under review until a real Amoy proof is confirmed.
 - After blockchain activation, confirm explorer transaction, check-in and check-out. Verify guests cannot use staff endpoints or view another guest's records.
-- Check expired holds, simultaneous bookings for the same room and matching dates, mobile layout, and production reset/confirmation links.
+- Check 24-hour expiry, first-receipt-wins between two guests for the same room and matching dates, mobile layout, and production reset/confirmation links.
 - Add up to three receptionists using verified account emails when provided. Administrator: zizoubariise@gmail.com. Do not restore the removed administrator-email-change control.
 
 Database advisors: RLS without policies on the three server-only job/lease/rate-limit tables is intentional. Availability is an intentional public SECURITY DEFINER function; role/guest helpers are caller-specific and receptionist management requires admin. Supabase leaked-password protection remains disabled; review https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection before launch.

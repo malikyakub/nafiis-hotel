@@ -13,7 +13,7 @@ public receiving numbers on 2026-10-08: EVC Plus 252619850667 and eDahab 2526235
 Account names were not supplied and have not been invented. No PIN is collected.
 
 The guest page shows payment review and blockchain status, polling every 15
-seconds. Active administrators/receptionists review in Payments. Approval starts
+seconds. Active administrators review in Payments (receptionists see status only). Approval starts
 the existing Amoy booking-proof flow; it remains under review until chain receipt
 verification succeeds. Blockchain records the hotel's attestation, not an
 independent judgment about a screenshot or bank/mobile-money transfer.
@@ -37,9 +37,11 @@ independent judgment about a screenshot or bank/mobile-money transfer.
 - A copied URL in a different browser cannot access the reservation. Clearing
   cookies loses guest access. Optional accounts with the same verified booking
   email provide longer-lived booking history.
-- Pending unpaid bookings do not reserve inventory under the existing allocation
-  rules. Availability is enforced at receipt submission. Hold expiry, automated
-  refunds and provider settlement callbacks remain outside this implementation.
+- Pending unpaid bookings do not reserve inventory. The first receipt submitted
+  reserves the room and cancels overlapping unpaid bookings; a later guest gets
+  409 `code: "room_taken"` and is sent back to the booking form with their dates.
+  Unpaid bookings are cancelled after 24 hours (docs/booking-expiry-24h.sql).
+  Automated refunds and provider settlement callbacks remain out of scope.
 
 Migration: account_optional_guest_payment_checkout, mirrored in
 docs/guest-payment-checkout.sql. Applied to the configured Supabase project.

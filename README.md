@@ -7,7 +7,7 @@ A hotel management system with guest booking, staff management and booking proof
 ## Current status — 9 October 2026
 
 - 30 demo rooms: 10 Garden, 8 Ocean, 12 Family suites; Room 001–030.
-- Account-optional booking, 30-minute room holds, private receipt uploads, customer history, room/food management and staff portals.
+- Account-optional booking, first-receipt-wins room reservation with 24-hour unpaid expiry, private receipt uploads, customer history, room/food management and staff portals.
 - A labelled demo passed booking, receipt review, real Amoy proof confirmation, check-in and checkout. No real payment was made.
 - **Everyone logs in with email + password.** Email codes apply only when guests create accounts. Signup SMTP/code templates remain unconfigured and deferred; existing confirmed accounts can use password login. See [email verification](docs/EMAIL-VERIFICATION.md).
 - Updated application is not hosted online. This source handoff is separate from website deployment.

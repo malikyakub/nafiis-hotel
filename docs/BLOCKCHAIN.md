@@ -10,8 +10,8 @@ Earlier setup notes below are historical where they say funding or deployment is
 
 
 Implemented for booking confirmation only. Guests pay using the hotel's ordinary
-payment instructions and upload a screenshot/receipt. An active administrator or
-receptionist reviews it. Approval saves `under_review`, then the server signs a
+payment instructions and upload a screenshot/receipt. An active administrator
+reviews it (receptionists see status only). Approval saves `under_review`, then the server signs a
 booking attestation. Three confirmations, a matching contract event and matching
 contract storage are required before the database marks the booking `confirmed`.
 This proves the hotel recorded its approval; it does not independently prove a

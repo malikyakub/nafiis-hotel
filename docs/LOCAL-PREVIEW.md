@@ -8,6 +8,8 @@ Run ./start-local.ps1 in PowerShell, or npm run dev -- --hostname 127.0.0.1 --po
 
 Login uses registered email and password. No login code is sent or entered. Guest registration verification and password recovery still use their existing email flows; signup SMTP/template setup remains deferred. See EMAIL-VERIFICATION.md. The Friday preview on port 4176 received the same login correction on 2026-10-13.
 
+Booking rules: unpaid bookings do not reserve a room, the first submitted receipt wins, unpaid bookings are cancelled after 24 hours, and only administrators approve payments. These need docs/booking-expiry-24h.sql applied to the database first.
+
 The shared database has 30 demo rooms and the Amoy demo flow passed through checkout. A new checkout still needs private environment configuration. Do not reset the shared database or redeploy the contract merely to run the app.
 
 ## Routes

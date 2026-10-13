@@ -21,7 +21,7 @@ The live Supabase schema changes are recorded by the migrations guest_checkout_a
 - GET /api/admin/payments?page=1: administrator/receptionist payment queue.
 - PATCH /api/admin/payments/:id: JSON decision approved/rejected and note. Rejection requires a reason. Review and its audit record commit atomically.
 - GET /api/payments/:id/proof: owner, administrator or receptionist obtains a download link valid for 60 seconds.
-- POST /api/staff/bookings/:id/blockchain: active admin/receptionist resumes the server-only booking proof. Approval also invokes this flow. See BLOCKCHAIN.md for configuration and guarantees.
+- POST /api/staff/bookings/:id/blockchain: active admin only resumes the server-only booking proof. Approval also invokes this flow. See BLOCKCHAIN.md for configuration and guarantees.
 
 Mutation API calls must include the same-site Origin header. Server actions use Next.js origin checks. Each endpoint verifies the current user and a protected active profile role; client-supplied roles and prices are ignored.
 

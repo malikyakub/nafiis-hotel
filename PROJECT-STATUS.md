@@ -1,5 +1,9 @@
 # Nafiis Hotel — source handoff status
 
+## Review fixes — feature/review-fixes
+
+Owner decisions implemented locally (not pushed or deployed): unpaid bookings no longer hold a room; the first submitted receipt wins and later guests are redirected to choose another room; unpaid bookings are cancelled after 24 hours; payment approval and chain writes are administrator only; lint errors fixed. Requires docs/booking-expiry-24h.sql on the database before testing.
+
 ## Latest source update — 13 October 2026
 
 The owner requested publishing the remaining local hotel work for partner review. This update includes password-only login for all roles, signup-only email codes, receipt/transaction-number validation, front-desk availability/capacity checks, report date validation, housekeeping filters and the three workstream reviews. Existing frontend styling and assets are preserved. Recovery and role/session checks remain intact.
