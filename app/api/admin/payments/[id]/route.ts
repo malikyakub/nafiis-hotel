@@ -6,7 +6,7 @@ import { anchorBooking } from "@/lib/chain/booking-proof";
 export async function PATCH(request: Request, context:{params:Promise<{id:string}>}) {
   try {
     sameOrigin(request);
-    const {user,supabase}=await requireRole("admin","receptionist");
+    const {user,supabase}=await requireRole("admin");
     const {id}=await context.params;
     const body=await request.json();
     if(!body||typeof body!=="object"||Array.isArray(body))return json({error:"Invalid review."},400);

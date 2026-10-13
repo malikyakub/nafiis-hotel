@@ -2,12 +2,14 @@
 import { MAX_RECEIPT_BYTES } from "@/lib/upload-limits";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { FileText, MessageSquare, RefreshCw, Upload } from "lucide-react";
 import { Button, ButtonLink } from "./button";
 import { Card } from "./card";
 import { Alert } from "./alert";
 import { Field } from "./field";
 import { StatusBadge } from "./badge";
+import { roomTakenHref } from "@/lib/room-taken";
 
 type Relation<T> = T | T[] | null;
 const one = <T,>(value: Relation<T> | undefined): T | undefined => Array.isArray(value) ? value[0] : value ?? undefined;
@@ -17,7 +19,7 @@ function ChainProofLink({ proof }: { proof?: ChainProof }) {
   return <p className="my-3 text-sm"><a className="underline" href={`https://amoy.polygonscan.com/tx/${proof.transaction_hash}`} target="_blank" rel="noopener noreferrer">Booking proof · {proof.status} · Polygon Amoy testnet</a></p>;
 }
 type Booking = {
-  id: string; hold_expires_at: string; reference: string; check_in: string; check_out: string; status: string;
+  id: string; payment_expires_at: string; reference: string; check_in: string; check_out: string; status: string;
   total_amount: number; guests_count: number; cancellation_reason?: string;
   rooms?: Relation<{ room_number: string }>;
   guests?: Relation<{ booking_name: string | null; booking_phone: string | null; profiles: Relation<{ full_name: string; phone: string }> }>;
@@ -35,40 +37,51 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   return body;
 }
 
+const ROOM_TAKEN_REASON = "Room taken by another paid booking";
+
 export function HotelPortal({ role }: { role: "guest" | "admin" | "receptionist" }) {
+  const router = useRouter();
+  // Payment review and booking-proof chain writes are administrator only; receptionists only see status.
+  const canReview = role === "admin";
   const [now,setNow]=useState(0);
-  useEffect(()=>{setNow(Date.now());const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer)},[]);
+  useEffect(()=>{
+    const tick=()=>setNow(Date.now());
+    const first=setTimeout(tick,0);const timer=setInterval(tick,1000);
+    return()=>{clearTimeout(first);clearInterval(timer)};
+  },[]);
   const [view, setView] = useState<View>("bookings");
   const [page, setPage] = useState(1);
   const [version, setVersion] = useState(0);
-  const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(true);
   const endpoint = view === "payments" ? "/api/admin/payments" : role === "guest" ? "/api/bookings" : "/api/staff/bookings";
+  // Each load is keyed by what it fetched, so loading and stale results are derived, not reset in the effect.
+  const loadKey = `${endpoint}?page=${page}#${version}`;
+  const [loaded, setLoaded] = useState<{ key: string; result: Result | null; error: string }>({ key: "", result: null, error: "" });
+  const loading = loaded.key !== loadKey;
+  const result = loading ? null : loaded.result;
+  const loadError = loading ? "" : loaded.error;
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true); setError(""); setResult(null);
     request<Result>(`${endpoint}?page=${page}`, { signal: controller.signal })
-      .then(setResult).catch(e => { if (!controller.signal.aborted) setError(e.message); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+      .then(data => setLoaded({ key: loadKey, result: data, error: "" }))
+      .catch(e => { if (!controller.signal.aborted) setLoaded({ key: loadKey, result: null, error: e instanceof Error ? e.message : "Unable to load." }); });
     return () => controller.abort();
-  }, [endpoint, page, version]);
+  }, [endpoint, page, loadKey]);
 
   // Reconcile real submitted transactions while a staff portal is open.
   // Missing configuration does not start a polling loop or create placeholder proofs.
   useEffect(() => {
-    if (role === "guest" || busy || loading || !result) return;
+    if (!canReview || busy || loading || !result) return;
     const id = result.bookings?.find(b => b.status === "under_review" && one(b.booking_proofs)?.status === "pending")?.id
       || result.payments?.find(p => one(p.bookings)?.status === "under_review" && one(one(p.bookings)?.booking_proofs)?.status === "pending")?.booking_id;
     if (!id) return;
     const timer = setTimeout(() => { void mutate(`/api/staff/bookings/${id}/blockchain`, { method: "POST" }, "Blockchain status updated."); }, 15000);
     return () => clearTimeout(timer);
     // mutate uses only stable setters; result/version deliberately restart the timer.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role, busy, loading, result]);
+  }, [canReview, busy, loading, result]);
 
   async function mutate(url: string, options: RequestInit, success: string) {
     setBusy(true); setError(""); setNotice("");
@@ -84,14 +97,23 @@ export function HotelPortal({ role }: { role: "guest" | "admin" | "receptionist"
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to open receipt."); }
     finally { setBusy(false); }
   }
-  function upload(event: FormEvent<HTMLFormElement>, id: string) {
+  async function upload(event: FormEvent<HTMLFormElement>, id: string) {
     event.preventDefault();
     const body = new FormData(event.currentTarget);
     const file = body.get("proof");
     if (!(file instanceof File) || !file.size || file.size > MAX_RECEIPT_BYTES) {
       setError("Choose a receipt under 4 MB."); return;
     }
-    void mutate(`/api/bookings/${id}/payment`, { method: "POST", body }, "Receipt submitted. The hotel will review your payment.");
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch(`/api/bookings/${id}/payment`, { method: "POST", body, cache: "no-store" });
+      const data = await response.json();
+      // Another guest's receipt for this room was submitted first: choose another room.
+      if (data.code === "room_taken") { router.push(roomTakenHref(data)); return; }
+      if (!response.ok) throw new Error(data.error || "Unable to complete this request.");
+      setNotice("Receipt submitted. Your room is reserved while the hotel administrator reviews your payment.");
+    } catch (e) { setError(e instanceof Error ? e.message : "Please try again."); }
+    finally { setBusy(false); setVersion(v => v + 1); }
   }
   function review(event: FormEvent<HTMLFormElement>, id: string) {
     event.preventDefault();
@@ -104,12 +126,12 @@ export function HotelPortal({ role }: { role: "guest" | "admin" | "receptionist"
   return <div className="space-y-6">
     <div className="flex flex-wrap gap-2" aria-label="Portal sections">
       {role !== "guest" && <>
-        <Button variant={view === "bookings" ? "primary" : "secondary"} onClick={() => { setView("bookings"); setPage(1); setNotice(""); }}>Bookings</Button>
-        <Button variant={view === "payments" ? "primary" : "secondary"} onClick={() => { setView("payments"); setPage(1); setNotice(""); }}>Payments</Button>
+        <Button variant={view === "bookings" ? "primary" : "secondary"} onClick={() => { setView("bookings"); setPage(1); setNotice(""); setError(""); }}>Bookings</Button>
+        <Button variant={view === "payments" ? "primary" : "secondary"} onClick={() => { setView("payments"); setPage(1); setNotice(""); setError(""); }}>Payments</Button>
       </>}
       <Button variant="secondary" disabled={loading || busy} onClick={() => setVersion(v => v + 1)}><RefreshCw />Refresh</Button>
     </div>
-    {error && <Alert status="danger">{error}</Alert>}
+    {(error || loadError) && <Alert status="danger">{error || loadError}</Alert>}
     {notice && <Alert status="success">{notice}</Alert>}
     {result?.notice && <Alert status="info">{result.notice}</Alert>}
     {loading && <p role="status" className="text-muted">Loading {view}…</p>}
@@ -128,12 +150,13 @@ export function HotelPortal({ role }: { role: "guest" | "admin" | "receptionist"
             {guest && <div><dt className="text-muted">Guest contact</dt><dd>{profile?.full_name || guest.booking_name}<br />{profile?.phone || guest.booking_phone}</dd></div>}
           </dl>
           {booking.cancellation_reason && <Alert status="warning">{booking.cancellation_reason}</Alert>}
+          {role === "guest" && booking.status === "cancelled" && booking.cancellation_reason === ROOM_TAKEN_REASON && <ButtonLink className="my-3" href={roomTakenHref(booking)}>Choose another room</ButtonLink>}
           {booking.status === "under_review" && <p className="mb-4 text-sm text-muted">Payment approved. Booking confirmation is awaiting blockchain proof.</p>}
           <ChainProofLink proof={one(booking.booking_proofs)} />
-          {role !== "guest" && booking.status === "under_review" && <Button className="mb-4" variant="secondary" disabled={busy} onClick={() => mutate(`/api/staff/bookings/${booking.id}/blockchain`, { method: "POST" }, "Blockchain status updated.")}>Check blockchain proof</Button>}
+          {canReview && booking.status === "under_review" && <Button className="mb-4" variant="secondary" disabled={busy} onClick={() => mutate(`/api/staff/bookings/${booking.id}/blockchain`, { method: "POST" }, "Blockchain status updated.")}>Check blockchain proof</Button>}
           {payment && <div className="mb-4 space-y-2"><StatusBadge value={payment.status} />{payment.review_note && <p className="text-sm">{payment.review_note}</p>}<Button variant="secondary" disabled={busy} onClick={() => proof(payment.id)}><FileText />Download receipt</Button></div>}
-          {booking.status === "pending_payment" && <p className="mb-3 text-sm">{Date.parse(booking.hold_expires_at)<=now?"Payment window expired. Do not pay; create a new booking.":`Payment deadline: ${new Date(booking.hold_expires_at).toLocaleString()}`}</p>}
-          {role === "guest" && booking.status === "pending_payment" && Date.parse(booking.hold_expires_at)>now && <form className="space-y-3 border-t border-border pt-4" onSubmit={e => upload(e, booking.id)}>
+          {booking.status === "pending_payment" && <p className="mb-3 text-sm">{Date.parse(booking.payment_expires_at)<=now?"Payment was not received within 24 hours. This booking is cancelled; do not pay for it.":`Room not reserved until a receipt is submitted. Unpaid bookings are cancelled at ${new Date(booking.payment_expires_at).toLocaleString()}.`}</p>}
+          {role === "guest" && booking.status === "pending_payment" && Date.parse(booking.payment_expires_at)>now && <form className="space-y-3 border-t border-border pt-4" onSubmit={e => { void upload(e, booking.id); }}>
             <p className="text-sm text-muted">After paying using the hotel’s instructions, upload your receipt for review.</p>
             <Field id={`proof-${booking.id}`} label="Payment receipt" name="proof" icon={Upload} type="file" accept="image/png,image/jpeg,application/pdf" required hint="PNG, JPEG or PDF, up to 4 MB." />
             <Field id={`reference-${booking.id}`} label="Receipt / transaction number" name="reference" icon={FileText} maxLength={120} required hint="Enter the number shown on your payment receipt." />
@@ -149,8 +172,9 @@ export function HotelPortal({ role }: { role: "guest" | "admin" | "receptionist"
         <Button variant="secondary" disabled={busy} onClick={() => proof(payment.id)}><FileText />Download receipt</Button>
         {payment.review_note && <p className="mt-3 text-sm">{payment.review_note}</p>}
         <ChainProofLink proof={one(one(payment.bookings)?.booking_proofs)} />
-        {payment.status === "approved" && one(payment.bookings)?.status === "under_review" && <Button className="mt-3" variant="secondary" disabled={busy} onClick={() => mutate(`/api/staff/bookings/${payment.booking_id}/blockchain`, { method: "POST" }, "Blockchain status updated.")}>Check blockchain proof</Button>}
-        {payment.status === "submitted" && <form className="mt-5 space-y-3" onSubmit={e => review(e, payment.id)}>
+        {canReview && payment.status === "approved" && one(payment.bookings)?.status === "under_review" && <Button className="mt-3" variant="secondary" disabled={busy} onClick={() => mutate(`/api/staff/bookings/${payment.booking_id}/blockchain`, { method: "POST" }, "Blockchain status updated.")}>Check blockchain proof</Button>}
+        {!canReview && payment.status === "submitted" && <p className="mt-3 text-sm text-muted">Awaiting administrator review.</p>}
+        {canReview && payment.status === "submitted" && <form className="mt-5 space-y-3" onSubmit={e => review(e, payment.id)}>
           <Field id={`note-${payment.id}`} label="Review note" name="note" icon={MessageSquare} maxLength={1000} hint="A reason is required for rejection." />
           <div className="flex flex-wrap gap-2"><Button type="submit" name="decision" value="approved" disabled={busy}>Approve payment</Button><Button type="submit" name="decision" value="rejected" variant="danger" disabled={busy}>Reject payment</Button></div>
         </form>}

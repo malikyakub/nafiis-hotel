@@ -43,7 +43,7 @@ try {
   }
   assert.equal(state.calls.length, 0);
   assert.equal((await run(rejected)).status, 200);
-  assert.deepEqual(state.roles, ['admin', 'receptionist']);
+  assert.deepEqual(state.roles, ['admin']);
   assert.equal(state.calls.at(-1).name, 'review_booking_payment');
   assert.equal(state.calls.at(-1).args.p_note, rejected.note.trim());
   assert.equal(state.calls.at(-1).args.p_admin, 'test-staff');
@@ -54,5 +54,5 @@ try {
   state.rpcError = false;
   assert.equal((await run({ decision: 'approved', note: '' })).status, 200);
   assert.deepEqual(state.anchors, ['test-booking']);
-  process.stdout.write('PASS: origin/session denial, staff role requirement, review validation, rejection without chain call, stale review conflict, approval chain dispatch. Dependency doubles only.\n');
+  process.stdout.write('PASS: origin/session denial, administrator-only role requirement, review validation, rejection without chain call, stale review conflict, approval chain dispatch. Dependency doubles only.\n');
 } finally { delete globalThis.__nafiisReviewTest; }

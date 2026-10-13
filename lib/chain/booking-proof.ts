@@ -14,9 +14,9 @@ type Job = {
 type Outcome = { status: "pending" | "confirmed" | "failed" | "configuration_required"; message: string };
 const pending = (message = "Proof submitted. Waiting for three blockchain confirmations."): Outcome => ({ status: "pending", message });
 
-/** Fresh role checks apply even when called from a payment approval handler. */
+/** Administrator only. Fresh role checks apply even when called from a payment approval handler. */
 export async function anchorBooking(bookingId: string): Promise<Outcome> {
-  const { user } = await requireRole("admin", "receptionist");
+  const { user } = await requireRole("admin");
   if (!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return { status: "configuration_required", message: "The hotel server's Supabase secret key must be configured locally." };
   }

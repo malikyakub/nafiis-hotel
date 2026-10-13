@@ -18,23 +18,26 @@ function show(value:unknown){return value===null||value===undefined||value===""?
 export function ManagementPanel({role}:{role:"admin"|"receptionist"}){
  const [section,setSection]=useState<Resource|"staff"|"availability"|"reports">("availability");
  const [page,setPage]=useState(1);const [revision,setRevision]=useState(0);
- const [data,setData]=useState<Page|null>(null);const [staff,setStaff]=useState<Row[]>([]);
+ const [staff,setStaff]=useState<Row[]>([]);
  const [editing,setEditing]=useState<Row|null>(null);const [adding,setAdding]=useState(false);
  const [options,setOptions]=useState<Record<string,Row[]>>({});
- const [error,setError]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);const [loading,setLoading]=useState(false);
+ const [error,setError]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
  const [available,setAvailable]=useState<Record<string,unknown>[]|null>(null);
  const [report,setReport]=useState<Record<string,unknown>|null>(null);
  const [roomQuery,setRoomQuery]=useState("");const [roomStatus,setRoomStatus]=useState<"all"|"available"|"cleaning"|"maintenance">("all");
+ // Each load is keyed by what it fetched, so loading and stale rows are derived, not reset in the effect.
+ const loadKey=`${section}:${page}:${revision}`;const remote=section!=="availability"&&section!=="reports";
+ const [loaded,setLoaded]=useState<{key:string;data:Page|null;error:string}>({key:"",data:null,error:""});
+ const loading=remote&&loaded.key!==loadKey;const data=loaded.key===loadKey?loaded.data:null;const loadError=loaded.key===loadKey?loaded.error:"";
  useEffect(()=>{
-  let live=true;setData(null);setError("");setLoading(true);
+  if(!remote)return;
+  let live=true;
   const load=async()=>{
-   if(section==="staff"){const result=await api<{receptionists:Row[]}>("/api/admin/receptionists");if(live)setStaff(result.receptionists);}
-   else if(section!=="availability"&&section!=="reports"){
-    const result=await api<Page>(`/api/management/${section}?page=${page}`);if(live)setData(result);
-   }
-  };load().catch(e=>{if(live)setError(e.message)}).finally(()=>{if(live)setLoading(false)});
+   if(section==="staff"){const result=await api<{receptionists:Row[]}>("/api/admin/receptionists");if(live){setStaff(result.receptionists);setLoaded({key:loadKey,data:null,error:""});}}
+   else{const result=await api<Page>(`/api/management/${section}?page=${page}`);if(live)setLoaded({key:loadKey,data:result,error:""});}
+  };load().catch(e=>{if(live)setLoaded({key:loadKey,data:null,error:e instanceof Error?e.message:"Request failed."})});
   return()=>{live=false};
- },[section,page,revision]);
+ },[section,page,remote,loadKey]);
  const fields:ManagementField[]=section in MANAGEMENT?MANAGEMENT[section as Resource].fields:[];
  async function openEditor(row:Row|null){
   setError("");setBusy(true);
@@ -69,8 +72,8 @@ export function ManagementPanel({role}:{role:"admin"|"receptionist"}){
  const sections:string[][]=[["availability","Availability"],["rooms","Rooms"],["room_types","Room types & prices"],["food_menu","Food menu"],["food_orders","Food orders"],["guests","Customers"],...(role==="admin"?[["staff","Receptionists"],["reports","Reports"],["hotel_settings","Hotel settings"]]:[])];
  return <section className="space-y-5">
   <h2 className="font-display text-3xl">Hotel management</h2>
-  <nav className="flex flex-wrap gap-2" aria-label="Hotel management">{sections.map(([key,label])=><Button key={key} variant={section===key?"primary":"secondary"} disabled={busy} onClick={()=>{setSection(key as typeof section);setPage(1);setEditing(null);setAdding(false);setNotice("");setAvailable(null);setReport(null);if(key==="rooms"){setRoomQuery("");setRoomStatus("all")}}}>{label}</Button>)}</nav>
-  {error&&<Alert status="danger">{error}</Alert>}{notice&&<Alert status="success">{notice}</Alert>}{loading&&<p role="status">Loading…</p>}
+  <nav className="flex flex-wrap gap-2" aria-label="Hotel management">{sections.map(([key,label])=><Button key={key} variant={section===key?"primary":"secondary"} disabled={busy} onClick={()=>{setSection(key as typeof section);setPage(1);setEditing(null);setAdding(false);setNotice("");setError("");setAvailable(null);setReport(null);if(key==="rooms"){setRoomQuery("");setRoomStatus("all")}}}>{label}</Button>)}</nav>
+  {(error||loadError)&&<Alert status="danger">{error||loadError}</Alert>}{notice&&<Alert status="success">{notice}</Alert>}{loading&&<p role="status">Loading…</p>}
   {(section==="availability"||section==="reports")&&<Card><h3 className="font-display text-xl">{section==="availability"?"Find available rooms":"Booking and payment report"}</h3><form onSubmit={dates} className="mt-4 flex flex-wrap items-end gap-4"><Field name="check_in" label="From" type="date" icon={FileText} required/><Field name="check_out" label="To (exclusive)" type="date" icon={FileText} required/><Button type="submit" disabled={busy}>View results</Button></form>{available&&<div className="mt-4 space-y-3">{available.length===0?<p>No rooms available for these dates.</p>:available.map(room=><p key={String(room.room_id)}>{show(room.room_number)} · {show(room.room_type)} · {show(room.capacity)} guests · USD {show(room.nightly_rate)}/night</p>)}</div>}{report&&<dl className="mt-5 grid gap-4 sm:grid-cols-2">{Object.entries(report).map(([key,value])=><div key={key}><dt className="text-sm capitalize text-muted">{key.replaceAll("_"," ")}</dt><dd className="text-xl">{show(value)}</dd></div>)}</dl>}</Card>}
   {section==="staff"&&<Card><h3 className="font-display text-xl">Receptionists ({staff.length}/3)</h3><p className="mt-2 text-sm text-muted">Ask each person to register and verify their email first. Add their email here to give reception access. Remove access by entering the same email below.</p><ul className="my-4 space-y-2">{staff.map(person=><li key={person.id}>{show(person.full_name)} · {show(person.phone)} · {person.is_active?"Active":"Disabled"}</li>)}</ul><form onSubmit={staffAccess} className="max-w-lg space-y-4"><Field name="email" label="Receptionist email" type="email" icon={Mail} required/><div className="flex flex-wrap gap-2"><Button type="submit" name="access" value="add" disabled={busy||staff.length>=3}>Add receptionist</Button><Button type="submit" name="access" value="remove" variant="secondary" disabled={busy}>Remove receptionist access</Button></div></form></Card>}
   {data&&<>
