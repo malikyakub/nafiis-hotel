@@ -1,7 +1,9 @@
 "use server";
 
 import type { FormState } from "@/lib/auth/form-state";
-import { brand } from "@/lib/brand";
+import { createBooking } from "@/lib/bookings";
+import { AccessError } from "@/lib/auth/require-role";
+import { logError } from "@/lib/log";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[\d\s-]{7,20}$/;
@@ -16,7 +18,7 @@ const text = (formData: FormData, key: string) => String(formData.get(key) ?? ""
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Quick booking from the home page. Guests book without an account; saving their details
-// (account + wallet) is offered after the booking, never required.
+// can be remembered on this device after the booking, never required.
 export async function requestBooking(_prev: FormState, formData: FormData): Promise<FormState> {
   const values = {
     check_in: text(formData, "check_in"),
@@ -56,11 +58,12 @@ export async function requestBooking(_prev: FormState, formData: FormData): Prom
   if (!PHONE_RE.test(values.phone)) return { error: "Enter a phone number we can reach you on.", values };
   if (values.email && !EMAIL_RE.test(values.email)) return { error: "Check the email address.", values };
 
-  // TODO(booking): create the booking here. Blocked on the schema: bookings belong to a signed-up
-  // guest today (guests.profile_id), so guest checkout needs a DB change from the DB agent first.
-  // Until then nothing is stored, and the guest is told so instead of being shown a fake confirmation.
-  return {
-    error: `Online booking opens soon. To book these dates now, call reception on ${brand.contact.phone}.`,
-    values,
-  };
+  try {
+    const booking = await createBooking(values);
+    return { success: `Booking request ${booking.reference} saved. Continue to payment to pay with EVC Plus or eDahab and upload your screenshot. No account is required.`, bookingId: booking.id, values };
+  } catch (error) {
+    if (error instanceof AccessError) return { error: error.message, values };
+    logError("booking.create", error);
+    return { error: "We could not save your booking. Please contact reception or try again.", values };
+  }
 }

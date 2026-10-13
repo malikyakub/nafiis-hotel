@@ -15,6 +15,7 @@ import { brand } from "@/lib/brand";
 import { FAQ, GALLERY, RESTAURANT_POINTS, ROOM_OPTIONS, ROOMS, STAY } from "@/lib/content";
 import { photos } from "@/lib/photos";
 import { requestBooking } from "./actions";
+import { liveRooms } from "@/lib/live-content";
 
 // Content (rooms, services, FAQ) lives in lib/content.ts; contact details in lib/brand.ts.
 // "Book a room" links go to the quick booking card (#book) until the guest booking flow has a page.
@@ -51,7 +52,8 @@ const LOCATION: { icon: LucideIcon; text: React.ReactNode }[] = [
   { icon: Plane, text: `${contact.airportMinutes} minutes from Aden Adde International Airport` },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const ROOMS = await liveRooms();
   return (
     <>
       {/* Hero */}

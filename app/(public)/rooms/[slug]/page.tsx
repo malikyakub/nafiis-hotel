@@ -12,6 +12,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { brand } from "@/lib/brand";
 import { DEMO, roomBySlug, ROOMS, usd } from "@/lib/content";
+import { liveRooms } from "@/lib/live-content";
 
 export function generateStaticParams() {
   return ROOMS.map((room) => ({ slug: room.slug }));
@@ -23,7 +24,9 @@ export async function generateMetadata({ params }: PageProps<"/rooms/[slug]">): 
 }
 
 export default async function RoomPage({ params }: PageProps<"/rooms/[slug]">) {
-  const room = roomBySlug((await params).slug);
+  const ROOMS = await liveRooms();
+  const slug = (await params).slug;
+  const room = ROOMS.find(candidate=>candidate.slug===slug);
   if (!room) notFound();
   const others = ROOMS.filter((other) => other.slug !== room.slug);
 

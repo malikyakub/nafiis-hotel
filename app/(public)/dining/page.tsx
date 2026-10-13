@@ -11,6 +11,7 @@ import { Reveal } from "@/components/ui/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { MENU, RESTAURANT_POINTS } from "@/lib/content";
 import { photos } from "@/lib/photos";
+import { liveMenu } from "@/lib/live-content";
 
 export const metadata: Metadata = {
   title: "Dining",
@@ -23,7 +24,8 @@ const STEPS: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: ReceiptText, title: "Added to your bill", text: "Nothing to pay at the table. Every order shows on your bill, itemised." },
 ];
 
-export default function DiningPage() {
+export default async function DiningPage() {
+  const MENU = await liveMenu();
   return (
     <>
       <PageHero
