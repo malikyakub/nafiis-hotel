@@ -1,5 +1,12 @@
 # Nafiis Hotel — source handoff status
 
+## Chatbot integrated directly — 14 October 2026
+
+The owner explicitly requested adding the chatbot directly to feature/full-integration. Integrated feature/ai-chatbot, including fast public-database answers, while preserving the newer portal, 24-hour booking expiry, first-receipt-wins behavior and administrator-only payment/chain approval. Only the shared status document required conflict resolution; both workstreams are preserved.
+
+Chat reads public room/menu/hotel data with anonymous RLS permissions and a 30-second cache. It has no private-record or transactional tools. The existing chatbot setup guide and tests are included. Server secrets and local environment files are excluded. Combined validation passed: production build (53 generated pages), TypeScript, intent/cache expiry/failure checks and live API origin/body/session-isolation tests. Eight routine answers matched the database and took 27–485 ms locally. Staged exclusions/private-value/conflict-marker and whitespace checks passed. Production deployment remains pending.
+
+
 ## Review fixes — feature/review-fixes
 
 Owner decisions implemented locally (not pushed or deployed): unpaid bookings no longer hold a room; the first submitted receipt wins and later guests are redirected to choose another room; unpaid bookings are cancelled after 24 hours; payment approval and chain writes are administrator only; lint errors fixed. Requires docs/booking-expiry-24h.sql on the database before testing.
