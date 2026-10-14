@@ -18,6 +18,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { TextLink } from "@/components/ui/text-link";
 import { AlertDemo } from "./alert-demo";
 import { PickerDemo } from "./picker-demo";
+import { BreadcrumbsDemo, SidebarDemo, TableDrawerDemo } from "./portal-demo";
 
 export const metadata: Metadata = { title: "Components", robots: { index: false } };
 
@@ -73,6 +74,8 @@ const SECTIONS = [
   { id: "alerts", title: "Alerts", file: "components/ui/alert.tsx, alert-provider.tsx" },
   { id: "layout", title: "Card · Page header · Text link", file: "card.tsx, page-header.tsx, text-link.tsx" },
   { id: "content", title: "Content blocks", file: "section-heading.tsx, detail-list.tsx, photo-slot.tsx, result-message.tsx" },
+  { id: "portal", title: "Portal · Sidebar · Breadcrumbs", file: "sidebar.tsx, breadcrumbs.tsx, portal-shell.tsx" },
+  { id: "tables", title: "Table · Drawer", file: "table.tsx, data-table.tsx, drawer.tsx" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -361,6 +364,17 @@ export default function ComponentsPage() {
                 A short line about what happens next.
               </ResultMessage>
             </Card>
+          </Section>
+
+          <Section id="portal">
+            <Caption>Portal navigation. Groups open like an accordion; collapsed, only icons show and a group click expands the bar.</Caption>
+            <BreadcrumbsDemo />
+            <SidebarDemo />
+          </Section>
+
+          <Section id="tables">
+            <Caption>Sticky header, status column, pagination. Click a row (or focus it and press Enter) to open its detail drawer.</Caption>
+            <TableDrawerDemo />
           </Section>
         </div>
       </div>

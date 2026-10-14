@@ -43,8 +43,10 @@ type DateTimeFieldProps = {
   icon: LucideIcon;
   value: DateTime | null;
   onChange: (value: DateTime) => void;
-  // Times offered once a date is picked, as HH:MM.
-  times: string[];
+  // Times offered once a date is picked, as HH:MM. Ignored with dateOnly.
+  times?: string[];
+  // Picking a day finishes; no time step. Value time is "". Past days follow minDate.
+  dateOnly?: boolean;
   minDate: string;
   // Start of a stay: days from here to the hovered or picked day are tinted as a range.
   rangeStart?: string;
@@ -65,7 +67,8 @@ export function DateTimeField({
   icon: Icon,
   value,
   onChange,
-  times,
+  times = [],
+  dateOnly,
   minDate,
   rangeStart,
   align = "start",
@@ -93,7 +96,7 @@ export function DateTimeField({
   const today = isoDay(now);
   const nowTime = now.toTimeString().slice(0, 5);
   const timeOpen = (day: string, time: string) => day > today || (day === today && time > nowTime);
-  const dayOpen = (day: string) => day >= minDate && times.some((time) => timeOpen(day, time));
+  const dayOpen = (day: string) => day >= minDate && (dateOnly || times.some((time) => timeOpen(day, time)));
 
   const setOpenState = useCallback(
     (next: boolean) => {
@@ -124,6 +127,12 @@ export function DateTimeField({
   }
 
   function pickDay(day: string) {
+    if (dateOnly) {
+      onChange({ date: day, time: "" });
+      setOpenState(false);
+      triggerRef.current?.focus();
+      return;
+    }
     setDraft(day);
     setFocusDay(day);
     setView("time");
@@ -161,8 +170,14 @@ export function DateTimeField({
     <>
       <span className="hidden sm:inline">{format(value.date, { weekday: "short" })} </span>
       {format(value.date, { day: "numeric", month: "short" })}
-      <span className="text-muted"> · </span>
-      {value.time}
+      {dateOnly ? (
+        <> {format(value.date, { year: "numeric" })}</>
+      ) : (
+        <>
+          <span className="text-muted"> · </span>
+          {value.time}
+        </>
+      )}
     </>
   ) : (
     <span className="text-muted">{label}</span>
@@ -176,7 +191,7 @@ export function DateTimeField({
         ref={triggerRef}
         type="button"
         tabIndex={tabIndex}
-        aria-label={value ? `${label}: ${format(value.date, { weekday: "long", day: "numeric", month: "long" })}, ${value.time}` : label}
+        aria-label={value ? `${label}: ${format(value.date, { weekday: "long", day: "numeric", month: "long" })}${dateOnly ? ` ${format(value.date, { year: "numeric" })}` : `, ${value.time}`}` : label}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-describedby={error ? `${id}-error` : undefined}
