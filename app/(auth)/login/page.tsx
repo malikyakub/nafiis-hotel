@@ -18,7 +18,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <>
-      <PageHeader size="card" title="Sign in" subtitle="Guests and staff sign in here." />
+      <PageHeader size="card" title="Sign in" subtitle="Guests, admins, and hotel staff can all sign in here." />
       {notice && (
         <Alert status={notice.status}>
           {notice.text}

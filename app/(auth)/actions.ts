@@ -1,5 +1,6 @@
 "use server";
 
+import { siteOrigin as configuredOrigin } from "@/lib/site-origin";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { FormState } from "@/lib/auth/form-state";
@@ -7,6 +8,8 @@ import { ROLE_HOME, safeNextPath, type AppRole } from "@/lib/auth/roles";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createServerClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/log";
+import { createClient } from "@supabase/supabase-js";
+import { supabasePublicEnv } from "@/lib/supabase/env";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[\d\s-]{7,20}$/;
@@ -15,14 +18,7 @@ const MIN_PASSWORD = 8;
 const text = (formData: FormData, key: string) =>
   String(formData.get(key) ?? "").trim();
 
-async function siteOrigin() {
-  const h = await headers();
-  const origin = h.get("origin");
-  if (origin) return origin;
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  return `${proto}://${host}`;
-}
+async function siteOrigin() { return configuredOrigin(await headers()); }
 
 function failure(error: unknown, values?: Record<string, string>): FormState {
   if (error instanceof SupabaseConfigError) {
@@ -36,95 +32,31 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   const email = text(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
   const values = { email };
-
-  if (!EMAIL_RE.test(email) || !password) {
-    return { error: "Enter your email and password.", values };
-  }
-
+  if (!EMAIL_RE.test(email) || email.length > 254 || !password) return { error: "Enter your email and password.", values };
   let destination: string;
   try {
+    // Authenticate without browser cookies first, then check the active profile.
+    // Login never requests or sends an email verification code.
+    const { url, anonKey } = supabasePublicEnv();
+    const isolated = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+    const { data, error } = await isolated.auth.signInWithPassword({ email, password });
+    if (error?.status === 429) return { error: "Too many sign-in attempts. Wait before trying again.", values };
+    if (error || !data.user || !data.session) return { error: error?.code === "email_not_confirmed" ? "Complete your account registration before signing in." : "Email or password is incorrect.", values };
+    const { data: profile, error: profileError } = await isolated.from("profiles").select("role,is_active")
+      .eq("id", data.user.id).single<{ role: AppRole; is_active: boolean }>();
+    if (profileError || !profile?.is_active || !Object.hasOwn(ROLE_HOME, profile.role)) {
+      await isolated.auth.signOut({ scope: "local" });
+      return { error: "This account is unavailable. Contact the hotel.", values };
+    }
     const supabase = await createServerClient();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      if (error.code === "email_not_confirmed") {
-        return { error: "Confirm your email first. Check your inbox for the link.", values };
-      }
-      return { error: "Email or password is incorrect.", values };
+    const { error: sessionError } = await supabase.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+    if (sessionError) {
+      await isolated.auth.signOut({ scope: "local" });
+      return { error: "Could not complete sign-in. Please try again.", values };
     }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, is_active")
-      .eq("id", data.user.id)
-      .single<{ role: AppRole; is_active: boolean }>();
-
-    if (profile && !profile.is_active) {
-      await supabase.auth.signOut();
-      return { error: "This account is disabled. Contact the hotel.", values };
-    }
-
-    // No profile yet (migration 001 not applied) falls back to the home page.
-    destination =
-      safeNextPath(formData.get("next")) ?? (profile ? ROLE_HOME[profile.role] : "/");
-  } catch (error) {
-    return failure(error, values);
-  }
-
+    destination = safeNextPath(formData.get("next")) ?? ROLE_HOME[profile.role];
+  } catch (error) { return failure(error, values); }
   redirect(destination);
-}
-
-export async function register(_prev: FormState, formData: FormData): Promise<FormState> {
-  const fullName = text(formData, "full_name");
-  const phone = text(formData, "phone");
-  const email = text(formData, "email").toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  const confirm = String(formData.get("confirm_password") ?? "");
-  const values = { full_name: fullName, phone, email };
-
-  if (fullName.length < 2) return { error: "Enter your full name.", field: "full_name", values };
-  if (phone && !PHONE_RE.test(phone)) return { error: "Check the phone number.", field: "phone", values };
-  if (!EMAIL_RE.test(email)) return { error: "Enter a valid email address.", field: "email", values };
-  if (password.length < MIN_PASSWORD) {
-    return { error: `Password must be at least ${MIN_PASSWORD} characters.`, field: "password", values };
-  }
-  if (password !== confirm) return { error: "Passwords do not match.", field: "confirm_password", values };
-
-  let signedIn = false;
-  try {
-    const supabase = await createServerClient();
-    const origin = await siteOrigin();
-    // Every sign-up is a guest. The signup trigger (DB agent, TASK-8) creates
-    // profile + guest + wallet and reads full_name and phone from this metadata.
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${origin}/auth/callback?next=${ROLE_HOME.guest}`,
-        data: { full_name: fullName, phone: phone || null },
-      },
-    });
-
-    if (error) {
-      if (error.code === "weak_password") {
-        return { error: "That password is too weak. Try a longer one.", field: "password", values };
-      }
-      if (error.code === "user_already_exists") {
-        return { error: "An account with this email already exists. Sign in instead.", field: "email", values };
-      }
-      return { error: "Could not create the account. Please try again.", values };
-    }
-
-    signedIn = Boolean(data.session);
-  } catch (error) {
-    return failure(error, values);
-  }
-
-  // Email confirmation off: already signed in. On: wait for the email link.
-  if (signedIn) redirect(ROLE_HOME.guest);
-  return {
-    success: `Check ${email} for a confirmation link to finish creating your account.`,
-  };
 }
 
 export async function requestPasswordReset(
@@ -144,6 +76,10 @@ export async function requestPasswordReset(
     });
     if (error && error.status === 429) {
       return { error: "Too many requests. Wait a minute and try again.", values: { email } };
+    }
+    if (error) {
+      logError("auth.password-reset", error);
+      return { error: "The password reset request could not be sent. Please try again or contact the project owner to check email delivery settings.", values: { email } };
     }
   } catch (error) {
     return failure(error, { email });

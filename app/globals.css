@@ -1,4 +1,9 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+
+/* Scan only application source, not build output or the legacy website copy. */
+@source "./**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+@source "../lib/**/*.{ts,tsx}";
 
 /* Nafiis brand palette (design: "Coral Stone & Ocean"). Change colours here only.
    Light mode only: the site does not follow the system theme. */
