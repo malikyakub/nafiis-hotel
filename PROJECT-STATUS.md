@@ -1,5 +1,12 @@
 # Nafiis Hotel — source handoff status
 
+## Fast database answers — 14 October 2026
+
+Routine English questions now bypass Ollama. Fixed anonymous/RLS reads return active room base prices/capacities, available food-menu items and public hotel settings, cached for 30 seconds. Booking/payment guidance uses the hotel guide. Private booking status redirects to protected flows; chat never queries customer records or changes data. Availability remains in the booking form. Other wording/languages use AI fallback and can still be slower.
+
+Eight live direct-answer checks took 26–1,039 ms locally (cached room follow-up: 30 ms); prices/capacities matched the database. Request/session checks and isolated cache coalescing, expiry, failure/recovery and intent-boundary tests passed. Live AI fallback still works. No schema, RLS or grant changes; no service-role key used. See docs/CUSTOMER-CHAT.md for setup, limits and test commands. This is source preparation before deployment.
+
+
 ## Customer AI chatbot — 14 October 2026
 
 Added the Ask Nafiis panel to public/customer routes and a server-only n8n chat bridge. Existing hotel styling and booking, payment and blockchain behavior remain intact. The feature branch is based on the latest predeployment handoff; it does not merge main or dev.

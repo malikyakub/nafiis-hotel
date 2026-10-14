@@ -2,6 +2,7 @@ import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypt
 import { NextRequest, NextResponse } from "next/server";
 import { failure, json, sameOrigin } from "@/lib/http";
 import { logError } from "@/lib/log";
+import { quickAnswer } from "@/lib/chat/quick-answer";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -63,20 +64,25 @@ export async function POST(request: NextRequest) {
     catch (error) { return json({ error: error instanceof RangeError ? "Your question is too long." : "Invalid question." }, error instanceof RangeError ? 413 : 400); }
     const message = body?.message;
     if (typeof message !== "string" || !message.trim() || message.length > 1000) return json({ error: "Enter a question of 1–1,000 characters." }, 400);
-    const target = process.env.HOTEL_CHAT_WEBHOOK_URL;
-    if (!target) return json({ error: "The assistant is unavailable. Please contact reception." }, 503);
-    const endpoint = new URL(target);
-    if (!(["http:", "https:"].includes(endpoint.protocol)) || endpoint.username || endpoint.password || (process.env.NODE_ENV === "production" && (endpoint.protocol !== "https:" || ["localhost", "127.0.0.1", "[::1]"].includes(endpoint.hostname)))) return json({ error: "The assistant is unavailable. Please contact reception." }, 503);
     const current = session(request);
     const now = Date.now();
     for (const [key, value] of limits.buckets) if (value.expires < now && !value.busy) limits.buckets.delete(key);
     if (limits.expires < now) { limits.count = 0; limits.expires = now + 60_000; }
     bucket = limits.buckets.get(current.visitor);
-    if (bucket?.busy || (bucket && bucket.count >= 20) || limits.active >= 3 || limits.count >= 30 || (!bucket && limits.buckets.size >= 2000)) return respond({ error: "The assistant is busy. Please wait a minute before trying again." }, current, 429);
+    if (bucket?.busy || (bucket && bucket.count >= 20) || limits.count >= 30 || (!bucket && limits.buckets.size >= 2000)) return respond({ error: "The assistant is busy. Please wait a minute before trying again." }, current, 429);
     bucket ??= { count: 0, expires: now + WINDOW, busy: false };
     limits.buckets.set(current.visitor, bucket);
-    bucket.count++; bucket.busy = true; limits.active++; limits.count++;
+    bucket.count++; bucket.busy = true; limits.count++;
+    let inferenceActive = false;
     try {
+      const answer = await quickAnswer(message.trim());
+      if (answer) return respond(answer, current);
+      if (limits.active >= 3) return respond({ error: "The assistant is busy. Please wait a minute before trying again." }, current, 429);
+      const target = process.env.HOTEL_CHAT_WEBHOOK_URL;
+      if (!target) return respond({ error: "AI replies are unavailable. You can still ask about room prices, the menu, location or how to book." }, current, 503);
+      const endpoint = new URL(target);
+      if (!(["http:", "https:"].includes(endpoint.protocol)) || endpoint.username || endpoint.password || (process.env.NODE_ENV === "production" && (endpoint.protocol !== "https:" || ["localhost", "127.0.0.1", "[::1]"].includes(endpoint.hostname)))) return respond({ error: "AI replies are unavailable. You can still ask about room prices, the menu, location or how to book." }, current, 503);
+      limits.active++; inferenceActive = true;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       // Optional existing Basic Auth credential. Never expose it to the client.
       if (process.env.HOTEL_CHAT_BASIC_AUTH) headers.Authorization = `Basic ${Buffer.from(process.env.HOTEL_CHAT_BASIC_AUTH).toString("base64")}`;
@@ -86,10 +92,10 @@ export async function POST(request: NextRequest) {
       const item = Array.isArray(result) ? result[0] : result;
       const reply = item?.output ?? item?.text;
       if (typeof reply !== "string" || !reply.trim() || reply.length > 12000) throw new Error("Chat provider returned an invalid answer.");
-      return respond({ reply }, current);
+      return respond({ reply, source: "ai" }, current);
     } catch {
       logError("chat.provider", new Error("Chat provider unavailable or returned an invalid response."));
       return respond({ error: "The assistant could not reply. Please try again or call reception." }, current, 502);
-    } finally { bucket.busy = false; limits.active--; }
+    } finally { bucket.busy = false; if (inferenceActive) limits.active--; }
   } catch (error) { return failure("chat.request", error); }
 }

@@ -22,7 +22,7 @@ export function HotelChat() {
   const transcript = useRef<HTMLDivElement>(null);
   const pending = useRef(false);
 
-  useEffect(() => { if (open) input.current?.querySelector("input")?.focus(); }, [open]);
+  useEffect(() => { if (open && !busy) input.current?.querySelector("input")?.focus(); }, [open, busy]);
   useEffect(() => {
     if (transcript.current) transcript.current.scrollTop = transcript.current.scrollHeight;
   }, [messages, busy, error, open]);
@@ -82,9 +82,9 @@ export function HotelChat() {
           </header>
           <div ref={transcript} role="log" aria-label="Chat messages" aria-live="polite" aria-relevant="additions" className="flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 text-sm leading-6">
             {messages.map((message, index) => <div key={index} className={`w-fit max-w-[92%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 ${message.role === "user" ? "ml-auto bg-brand text-white" : "bg-background text-foreground"}`}><span className="sr-only">{message.role === "user" ? "You: " : "Assistant: "}</span>{message.text}</div>)}
-            {busy && <p role="status" className="flex items-center gap-2 text-muted"><LoaderCircle aria-hidden className="size-4 animate-spin motion-reduce:animate-none" />Thinking… this can take up to a minute.</p>}
+            {busy && <p role="status" className="flex items-center gap-2 text-muted"><LoaderCircle aria-hidden className="size-4 animate-spin motion-reduce:animate-none" />Finding an answer…</p>}
           </div>
-          {messages.length === 1 && <div className="flex flex-wrap gap-2 px-4 pb-3">{["How do I book?", "Where is the hotel?", "How do payments work?"].map(question => <Button key={question} size="sm" variant="secondary" disabled={busy} onClick={() => void send(question)} className="text-xs">{question}</Button>)}</div>}
+          {messages.length === 1 && <div className="flex flex-wrap gap-2 px-4 pb-3">{["Room prices", "Restaurant menu", "How do I book?"].map(question => <Button key={question} size="sm" variant="secondary" disabled={busy} onClick={() => void send(question)} className="text-xs">{question}</Button>)}</div>}
           <div className="flex flex-wrap gap-2 border-t border-border px-4 py-2">
             <ButtonLink href="/#book" size="sm" variant="ghost" onClick={close}>Book a room</ButtonLink>
             <a href={`tel:${brand.contact.phoneHref}`} className="self-center rounded-full px-2 text-xs font-medium text-brand underline underline-offset-4">Call reception</a>
