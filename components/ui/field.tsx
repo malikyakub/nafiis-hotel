@@ -11,16 +11,18 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
   error?: string;
   // Tighter padding and a smaller icon, for dense layouts like the quick booking bar.
   compact?: boolean;
+  // Keeps the label for screen readers only; the placeholder should then name the field.
+  hideLabel?: boolean;
 };
 
-export function Field({ label, name, icon: Icon, hint, error, compact, id, className, ...input }: FieldProps) {
+export function Field({ label, name, icon: Icon, hint, error, compact, hideLabel, id, className, ...input }: FieldProps) {
   const inputId = id ?? name;
   const message = error ?? hint;
   const messageId = message ? `${inputId}-hint` : undefined;
 
   return (
     <div className={cn("group flex min-w-0 flex-col", compact ? "gap-1.5" : "gap-2")}>
-      <label htmlFor={inputId} className="text-[13px] leading-[18px] font-medium">
+      <label htmlFor={inputId} className={cn("text-[13px] leading-[18px] font-medium", hideLabel && "sr-only")}>
         {label}
       </label>
       <div className="relative">

@@ -1,18 +1,18 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, BedDouble, CalendarCheck, CalendarDays, Mail, Phone, User, UserRoundCheck, Users } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { initialFormState, type FormState } from "@/lib/auth/form-state";
 import { cn } from "@/lib/cn";
 import { CHECK_IN_TIMES, CHECK_OUT_TIMES, DEMO } from "@/lib/content";
-import { Alert } from "./alert";
+import { useAlert } from "./alert-provider";
 import { Button, ButtonLink } from "./button";
 import { Card } from "./card";
 import { addDays, DateTimeField, isoDay, type DateTime } from "./date-time-field";
 import { Field } from "./field";
 import { ListboxField, type ListboxOption } from "./listbox-field";
 import { SubmitButton } from "./submit-button";
-import { BookingSteps } from "./booking-steps";
+import { BookingStepCount } from "./booking-steps";
 
 type QuickBookingProps = {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
@@ -28,11 +28,7 @@ const GUEST_OPTIONS: ListboxOption[] = [1, 2, 3, 4, 5, 6].map((n) => ({
   label: n === 1 ? "1 guest" : `${n} guests`,
 }));
 
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-const shortDate = (day: string) =>
-  new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const SAVED_CONTACT_KEY = "nafiis-saved-contact-v1";
 
 function restore(date?: string, time?: string): DateTime | null {
   return date && time ? { date, time } : null;
@@ -58,12 +54,66 @@ function StayLink({ active }: { active: boolean }) {
 }
 
 type StayErrors = Partial<Record<"check_in" | "check_out", string>>;
+type ShowAlert = ReturnType<typeof useAlert>;
+
+// Optional device storage of contact details. Its outcome is an alert, never a row in the bar.
+function rememberDetails(showAlert: ShowAlert, values: FormState["values"]) {
+  if (!values) return;
+  try {
+    localStorage.setItem(SAVED_CONTACT_KEY, JSON.stringify({
+      full_name: values.full_name, phone: values.phone, email: values.email,
+    }));
+    showAlert({ tag: "quick-booking-device", status: "success", durationMs: null, message: <><p>Details saved on this device for next time.</p>{forgetButton(showAlert)}</> });
+  } catch {
+    showAlert({ tag: "quick-booking-device", status: "warning", durationMs: null, message: "This browser could not save your details. Your booking is still saved." });
+  }
+}
+
+function forgetDetails(showAlert: ShowAlert) {
+  try {
+    localStorage.removeItem(SAVED_CONTACT_KEY);
+    showAlert({ tag: "quick-booking-device", status: "success", message: "Saved details removed from this device." });
+  } catch {
+    showAlert({ tag: "quick-booking-device", status: "warning", durationMs: null, message: "Unable to remove saved details. Use your browser's site-data settings." });
+  }
+}
+
+function forgetButton(showAlert: ShowAlert) {
+  return <Button size="sm" variant="secondary" className="mt-2" onClick={() => forgetDetails(showAlert)}>Forget saved details</Button>;
+}
 
 // Stay and contact details lead into the third step on the private payment page.
 // No account needed; the guest is offered
 // to remember their contact details on this device after booking, never before.
+// The bar is one row per step; every message goes to the top-right alerts. Errors and alerts
+// with actions stay until dismissed.
 export function QuickBooking({ action, rooms, className, initialStay, notice }: QuickBookingProps) {
-  const [state, formAction, pending] = useActionState(action, initialFormState);
+  const showAlert = useAlert();
+  const [state, formAction, pending] = useActionState(async (prev: FormState, formData: FormData) => {
+    const next = await action(prev, formData);
+    if (next.error) showAlert({ tag: "quick-booking", status: "info", title: "Almost there", message: next.error, durationMs: null });
+    if (next.success) {
+      showAlert({
+        tag: "quick-booking",
+        status: "success",
+        title: "Booking request saved",
+        durationMs: null,
+        message: (
+          <div className="flex flex-col gap-2">
+            <p>{next.success}</p>
+            <p className="text-muted">
+              Optional: save your name, phone and email on this device, or create an account. Avoid saving on shared computers.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="secondary" onClick={() => rememberDetails(showAlert, next.values)}>Save details</Button>
+              <ButtonLink size="sm" variant="secondary" href="/register">Create an account</ButtonLink>
+            </div>
+          </div>
+        ),
+      });
+    }
+    return next;
+  }, initialFormState);
   const [step, setStep] = useState<1 | 2>(1);
   const [today] = useState(() => isoDay(new Date()));
   const [checkIn, setCheckIn] = useState(() => restore(state.values?.check_in, state.values?.check_in_time)
@@ -75,31 +125,20 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
   const [errors, setErrors] = useState<StayErrors>({});
   const [openPicker, setOpenPicker] = useState<"in" | "out" | null>(null);
   const [contact, setContact] = useState({ full_name: "", phone: "", email: "" });
-  const [savedDetails, setSavedDetails] = useState(false);
-  const [storageNotice, setStorageNotice] = useState("");
+  // Closes the stay error alert once the dates it complained about are fixed.
+  const dismissStayError = useRef<(() => void) | null>(null);
 
-  function rememberDetails() {
-    if (!state.success || !state.values) return;
-    try {
-      localStorage.setItem("nafiis-saved-contact-v1", JSON.stringify({
-        full_name: state.values.full_name, phone: state.values.phone, email: state.values.email,
-      }));
-      setSavedDetails(true); setStorageNotice("Details saved on this device for next time.");
-    } catch { setStorageNotice("This browser could not save your details. Your booking is still saved."); }
-  }
-  function forgetDetails() {
-    try {
-      localStorage.removeItem("nafiis-saved-contact-v1");
-      setSavedDetails(false); setStorageNotice("Saved details removed from this device.");
-    } catch { setStorageNotice("Unable to remove saved details. Use your browser's site-data settings."); }
-  }
+  // Sent back from the payment page when another guest paid for the room first.
+  useEffect(() => {
+    if (notice) showAlert({ tag: "quick-booking-notice", status: "warning", title: "Someone else paid first", message: notice, durationMs: null });
+  }, [notice, showAlert]);
 
   const split = checkIn !== null;
-  const nights = checkIn && checkOut ? Math.round((Date.parse(checkOut.date) - Date.parse(checkIn.date)) / DAY_MS) : 0;
 
   function pickCheckIn(value: DateTime) {
     setCheckIn(value);
     setErrors({});
+    dismissStayError.current?.();
     // Check-out follows: the next day at the standard time, unless a later one is already set.
     if (!checkOut || checkOut.date <= value.date) setCheckOut({ date: addDays(value.date, 1), time: DEMO.checkOut });
   }
@@ -110,45 +149,28 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
     else if (checkIn.date < today) next.check_in = "Can't be in the past.";
     else if (!checkOut || checkOut.date <= checkIn.date) next.check_out = "Must be after check-in.";
     setErrors(next);
-    if (Object.keys(next).length === 0) {
-      try {
-        const saved = JSON.parse(localStorage.getItem("nafiis-saved-contact-v1") || "null");
-        if (saved && typeof saved.full_name === "string" && typeof saved.phone === "string" && typeof saved.email === "string") {
-          setContact(current => ({ full_name: current.full_name || saved.full_name.slice(0,120), phone: current.phone || saved.phone.slice(0,30), email: current.email || saved.email.slice(0,254) }));
-          setSavedDetails(true);
-        }
-      } catch { /* Optional device storage must never prevent a booking. */ }
-      setStep(2);
+    const message = next.check_in ?? next.check_out;
+    if (message) {
+      dismissStayError.current = showAlert({ tag: "quick-booking", status: "danger", title: next.check_in ? "Check-in" : "Check-out", message, durationMs: null });
+      return;
     }
+    dismissStayError.current?.();
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVED_CONTACT_KEY) || "null");
+      if (saved && typeof saved.full_name === "string" && typeof saved.phone === "string" && typeof saved.email === "string") {
+        setContact(current => ({ full_name: current.full_name || saved.full_name.slice(0,120), phone: current.phone || saved.phone.slice(0,30), email: current.email || saved.email.slice(0,254) }));
+        showAlert({ tag: "quick-booking-device", status: "info", durationMs: null, message: <><p>Filled in with the details saved on this device.</p>{forgetButton(showAlert)}</> });
+      }
+    } catch { /* Optional device storage must never prevent a booking. */ }
+    setStep(2);
   }
 
-  const roomLabel = rooms.find((option) => option.value === room)?.label ?? "";
-  const guestsLabel = GUEST_OPTIONS.find((option) => option.value === guests)?.label;
   const readyForPayment = Boolean(state.success && state.bookingId);
 
   return (
     <div className={cn("flex flex-col items-center gap-3", className)}>
-      <Card className="flex w-full flex-col gap-4 p-4 shadow-[0_24px_60px_-28px_rgb(20_32_43/0.45)] md:p-5">
-        <BookingSteps current={readyForPayment ? 3 : step} />
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 className="font-display text-[22px] leading-7 font-normal">
-            {readyForPayment ? "Your stay is saved. Next, payment." : step === 1 ? "Choose your stay" : "Add your guest details"}
-          </h2>
-          <p className="flex min-w-0 items-baseline gap-2 text-xs text-muted">
-            {step === 2 && (
-              <span className="truncate">
-                <span className="font-medium text-foreground">
-                  {checkIn && shortDate(checkIn.date)} – {checkOut && shortDate(checkOut.date)}
-                </span>{" "}
-                · {nights} {nights === 1 ? "night" : "nights"} · {guestsLabel} · {roomLabel}
-              </span>
-            )}
-            <span className="shrink-0 font-semibold uppercase tracking-[0.16em] text-accent">Step {readyForPayment ? 3 : step}/3</span>
-          </p>
-        </div>
-
-        {notice && !readyForPayment && <Alert status="warning" title="Someone else paid first">{notice}</Alert>}
-        <form action={formAction} noValidate className="flex flex-col gap-3">
+      <Card className="w-full p-3! shadow-[0_24px_60px_-28px_rgb(20_32_43/0.45)]">
+        <form action={formAction} noValidate>
           {/* Both steps stay in the form so one submit sends everything; `hidden` only hides one. */}
           <div hidden={step !== 1 || readyForPayment} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)_minmax(0,1.25fr)_auto]">
             <div className={cn("stay-split col-span-2 lg:col-span-1", split && "is-split")}>
@@ -161,6 +183,7 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
                 times={CHECK_IN_TIMES}
                 minDate={today}
                 error={errors.check_in}
+                hideError
                 onOpenChange={(open) => setOpenPicker(open ? "in" : null)}
               />
               <div className="stay-out relative min-w-0" inert={!split}>
@@ -175,6 +198,7 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
                   rangeStart={checkIn?.date}
                   align="end"
                   error={errors.check_out}
+                  hideError
                   onOpenChange={(open) => setOpenPicker(open ? "out" : null)}
                 />
                 <StayLink active={openPicker !== null} />
@@ -182,22 +206,25 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
             </div>
             <ListboxField label="Guests" name="guests" icon={Users} options={GUEST_OPTIONS} value={guests} onChange={setGuests} />
             <ListboxField label="Room" name="room_type" icon={BedDouble} options={rooms} value={room} onChange={setRoom} />
-            <Button onClick={continueToDetails} className="col-span-2 w-full lg:col-span-1 lg:w-auto">
-              Guest details
-              <ArrowRight aria-hidden />
-            </Button>
+            <div className="col-span-2 flex items-center gap-3 lg:col-span-1">
+              <BookingStepCount current={1} />
+              <Button onClick={continueToDetails} className="flex-1 lg:flex-none">
+                Guest details
+                <ArrowRight aria-hidden />
+              </Button>
+            </div>
           </div>
 
-          {step === 2 && !readyForPayment && <p className="text-sm text-muted">Continue as a guest. You can save your details or create an account after your booking is saved.</p>}
           <div hidden={step !== 2 || readyForPayment} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[1.2fr_1fr_1.2fr_auto]">
             <div className="col-span-2 lg:col-span-1">
               <Field
                 compact
+                hideLabel
                 label="Full name"
                 name="full_name"
                 icon={User}
                 autoComplete="name"
-                placeholder="Amina Hassan"
+                placeholder="Full name"
                 value={contact.full_name}
                 onChange={event => setContact(current => ({ ...current, full_name: event.target.value }))}
                 required
@@ -205,56 +232,50 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
             </div>
             <Field
               compact
+              hideLabel
               label="Phone"
               name="phone"
               type="tel"
               icon={Phone}
               autoComplete="tel"
-              placeholder="+252 61 234 5678"
+              placeholder="Phone"
               value={contact.phone}
               onChange={event => setContact(current => ({ ...current, phone: event.target.value }))}
               required
             />
             <Field
               compact
+              hideLabel
               label="Email (optional)"
               name="email"
               type="email"
               icon={Mail}
               autoComplete="email"
-              placeholder="you@example.com"
+              placeholder="Email (optional)"
               value={contact.email}
               onChange={event => setContact(current => ({ ...current, email: event.target.value }))}
             />
-            <div className="col-span-2 flex gap-2 lg:col-span-1 lg:mt-6">
+            <div className="col-span-2 flex items-center gap-2 lg:col-span-1">
+              <BookingStepCount current={2} className="mr-1" />
               <Button variant="ghost" onClick={() => setStep(1)} aria-label="Back to your stay" className="w-11 shrink-0 px-0">
                 <ArrowLeft aria-hidden />
               </Button>
-              <SubmitButton pending={pending} pendingLabel="Booking…" className="lg:w-auto">
+              <SubmitButton pending={pending} pendingLabel="Booking…" className="flex-1 lg:w-auto lg:flex-none">
                 Save & continue
               </SubmitButton>
             </div>
           </div>
-
-          {state.success && step === 2 && (
-            <div className="space-y-3">
-              <Alert status="success" title="Booking request saved">{state.success}</Alert>
-              {state.bookingId && <ButtonLink href={`/booking/${state.bookingId}`}>Continue to payment<ArrowRight aria-hidden /></ButtonLink>}
-              <p className="text-sm text-muted">Optional: remember your name, phone and email on this device. Avoid this on shared computers.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="secondary" onClick={rememberDetails}>Save details on this device</Button>
-                <ButtonLink variant="secondary" href="/register">Create an account (optional)</ButtonLink>
-              </div>
-            </div>
-          )}
-          {savedDetails && step === 2 && <Button type="button" variant="ghost" onClick={forgetDetails}>Forget saved details</Button>}
-          {storageNotice && step === 2 && <p role="status" className="text-sm text-muted">{storageNotice}</p>}
-          {state.error && step === 2 && (
-            <Alert status="info" title="Almost there">
-              {state.error}
-            </Alert>
-          )}
         </form>
+
+        {readyForPayment && (
+          <div className="flex items-center justify-end gap-3">
+            <BookingStepCount current={3} />
+            <ButtonLink href={`/booking/${state.bookingId}`} className="flex-1 lg:flex-none">
+              Continue to payment
+              <ArrowRight aria-hidden />
+            </ButtonLink>
+          </div>
+        )}
       </Card>
 
       <p className="flex items-center gap-2 px-2 text-center text-[13px] leading-[18px] text-muted">

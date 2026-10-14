@@ -4,9 +4,18 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
 import { Alert } from "./alert";
 import type { Status } from "./status";
 
-type AlertInput = { status?: Status; title?: string; message: string; durationMs?: number };
+type AlertInput = {
+  status?: Status;
+  title?: string;
+  message: React.ReactNode;
+  // null keeps the alert until it is dismissed: use it for errors and alerts with actions.
+  durationMs?: number | null;
+  // An alert with the same tag replaces the one already showing instead of stacking.
+  tag?: string;
+};
 type AlertItem = AlertInput & { id: number };
-type ShowAlert = (alert: AlertInput) => void;
+// Returns a function that dismisses this alert, e.g. once the error it reports is fixed.
+type ShowAlert = (alert: AlertInput) => () => void;
 
 const AlertContext = createContext<ShowAlert | null>(null);
 
@@ -24,8 +33,12 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
   const show = useCallback<ShowAlert>(
     (alert) => {
       const id = nextId.current++;
-      setAlerts((current) => [...current, { ...alert, id }]);
-      window.setTimeout(() => dismiss(id), alert.durationMs ?? DEFAULT_DURATION_MS);
+      setAlerts((current) => [
+        ...current.filter((item) => !alert.tag || item.tag !== alert.tag),
+        { ...alert, id },
+      ]);
+      if (alert.durationMs !== null) window.setTimeout(() => dismiss(id), alert.durationMs ?? DEFAULT_DURATION_MS);
+      return () => dismiss(id);
     },
     [dismiss],
   );

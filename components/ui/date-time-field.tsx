@@ -51,6 +51,8 @@ type DateTimeFieldProps = {
   // Which edge of the pill the popover lines up with.
   align?: "start" | "end";
   error?: string;
+  // Keeps the error for screen readers only, when it is also shown elsewhere (an alert).
+  hideError?: boolean;
   onOpenChange?: (open: boolean) => void;
   tabIndex?: number;
   className?: string;
@@ -68,6 +70,7 @@ export function DateTimeField({
   rangeStart,
   align = "start",
   error,
+  hideError,
   onOpenChange,
   tabIndex,
   className,
@@ -193,7 +196,7 @@ export function DateTimeField({
         </span>
       </button>
       {error && (
-        <p id={`${id}-error`} className="mt-1.5 px-3 text-xs text-danger">
+        <p id={`${id}-error`} className={cn("mt-1.5 px-3 text-xs text-danger", hideError && "sr-only")}>
           {error}
         </p>
       )}
