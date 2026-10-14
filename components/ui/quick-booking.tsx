@@ -29,6 +29,10 @@ const GUEST_OPTIONS: ListboxOption[] = [1, 2, 3, 4, 5, 6].map((n) => ({
 
 const SAVED_CONTACT_KEY = "nafiis-saved-contact-v1";
 
+// Phone numbers are Somali: the guest types the local part, the form posts "+252 <local>".
+const DIAL_CODE = "+252";
+const localPhone = (phone: string) => phone.trim().replace(/^\+252\s*/, "");
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const shortDate = (day: string) =>
@@ -129,6 +133,7 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
   const [errors, setErrors] = useState<StayErrors>({});
   const [openPicker, setOpenPicker] = useState<"in" | "out" | null>(null);
   const [contact, setContact] = useState({ full_name: "", phone: "", email: "" });
+  const [phoneFocused, setPhoneFocused] = useState(false);
   // Closes the stay error alert once the dates it complained about are fixed.
   const dismissStayError = useRef<(() => void) | null>(null);
 
@@ -162,7 +167,7 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
     try {
       const saved = JSON.parse(localStorage.getItem(SAVED_CONTACT_KEY) || "null");
       if (saved && typeof saved.full_name === "string" && typeof saved.phone === "string" && typeof saved.email === "string") {
-        setContact(current => ({ full_name: current.full_name || saved.full_name.slice(0,120), phone: current.phone || saved.phone.slice(0,30), email: current.email || saved.email.slice(0,254) }));
+        setContact(current => ({ full_name: current.full_name || saved.full_name.slice(0,120), phone: current.phone || localPhone(saved.phone).slice(0,30), email: current.email || saved.email.slice(0,254) }));
         showAlert({ tag: "quick-booking-device", status: "info", durationMs: null, message: <><p>Filled in with the details saved on this device.</p>{forgetButton(showAlert)}</> });
       }
     } catch { /* Optional device storage must never prevent a booking. */ }
@@ -245,47 +250,68 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
             </Button>
           </div>
 
-          <div hidden={step !== 2 || readyForPayment} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[1.2fr_1fr_1.2fr_auto]">
+          <div hidden={step !== 2 || readyForPayment} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[1.1fr_1.3fr_1.1fr_auto]">
             <div className="col-span-2 lg:col-span-1">
               <Field
                 compact
-                hideLabel
                 label="Full name"
                 name="full_name"
                 icon={User}
                 autoComplete="name"
-                placeholder="Full name"
+                placeholder="Amina Hassan"
                 value={contact.full_name}
                 onChange={event => setContact(current => ({ ...current, full_name: event.target.value }))}
                 required
               />
             </div>
-            <Field
-              compact
-              hideLabel
-              label="Phone"
-              name="phone"
-              type="tel"
-              icon={Phone}
-              autoComplete="tel"
-              placeholder="Phone"
-              value={contact.phone}
-              onChange={event => setContact(current => ({ ...current, phone: event.target.value }))}
-              required
-            />
-            <Field
-              compact
-              hideLabel
-              label="Email (optional)"
-              name="email"
-              type="email"
-              icon={Mail}
-              autoComplete="email"
-              placeholder="Email (optional)"
-              value={contact.email}
-              onChange={event => setContact(current => ({ ...current, email: event.target.value }))}
-            />
-            <div className="col-span-2 flex items-center gap-2 lg:col-span-1">
+            {/* Dial code and number are two pills joined like check-in and check-out. */}
+            <div className="col-span-2 flex min-w-0 flex-col gap-1.5 sm:col-span-1">
+              <span aria-hidden className="text-[13px] leading-[18px] font-medium">Phone</span>
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 [--split-gap:12px]">
+                <span
+                  aria-hidden
+                  className={cn(
+                    "flex h-11 items-center rounded-full border bg-surface px-3.5 text-sm font-medium text-foreground transition",
+                    phoneFocused ? "border-brand" : "border-border-strong",
+                  )}
+                >
+                  {DIAL_CODE}
+                </span>
+                <div className="relative min-w-0">
+                  <Field
+                    compact
+                    hideLabel
+                    label={`Phone number, after ${DIAL_CODE}`}
+                    name="phone_local"
+                    type="tel"
+                    icon={Phone}
+                    autoComplete="tel-national"
+                    placeholder="61 234 5678"
+                    value={contact.phone}
+                    onChange={event => setContact(current => ({ ...current, phone: event.target.value }))}
+                    onFocus={() => setPhoneFocused(true)}
+                    onBlur={() => setPhoneFocused(false)}
+                    required
+                  />
+                  <StayLink active={phoneFocused} />
+                </div>
+              </div>
+              <input type="hidden" name="phone" value={localPhone(contact.phone) && `${DIAL_CODE} ${localPhone(contact.phone)}`} />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <Field
+                compact
+                label="Email (optional)"
+                name="email"
+                type="email"
+                icon={Mail}
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={contact.email}
+                onChange={event => setContact(current => ({ ...current, email: event.target.value }))}
+              />
+            </div>
+            <div className="col-span-2 flex items-center gap-2 lg:col-span-1 lg:mt-6">
               <Button variant="ghost" onClick={() => setStep(1)} aria-label="Back to your stay" className="w-11 shrink-0 px-0">
                 <ArrowLeft aria-hidden />
               </Button>
