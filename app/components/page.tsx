@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, Lock, LogIn, Mail, MailCheck, Phone, Search, User } from "lucide-react";
+import { ArrowRight, BedDouble, CalendarDays, Lock, LogIn, Mail, MailCheck, Phone, Search, User } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PhotoSlot } from "@/components/ui/photo-slot";
 import { ResultMessage } from "@/components/ui/result-message";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { SelectField } from "@/components/ui/select-field";
 import { STATUSES } from "@/components/ui/status";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { TextLink } from "@/components/ui/text-link";
@@ -19,6 +20,12 @@ import { AlertDemo } from "./alert-demo";
 import { PickerDemo } from "./picker-demo";
 
 export const metadata: Metadata = { title: "Components", robots: { index: false } };
+
+const ROOM_TYPES = [
+  { value: "standard", label: "Standard room" },
+  { value: "deluxe", label: "Deluxe room" },
+  { value: "ocean", label: "Ocean suite" },
+];
 
 const BUTTON_VARIANTS: ButtonVariant[] = ["primary", "secondary", "ghost", "success", "warning", "danger"];
 
@@ -60,7 +67,7 @@ const SECTIONS = [
   { id: "type", title: "Typography", file: "app/layout.tsx (fonts)" },
   { id: "brand", title: "Brand mark", file: "components/ui/brand-mark.tsx" },
   { id: "buttons", title: "Buttons", file: "components/ui/button.tsx, submit-button.tsx" },
-  { id: "inputs", title: "Inputs", file: "components/ui/field.tsx" },
+  { id: "inputs", title: "Inputs", file: "components/ui/field.tsx, select-field.tsx" },
   { id: "pickers", title: "Pickers", file: "components/ui/date-time-field.tsx, listbox-field.tsx" },
   { id: "badges", title: "Badges", file: "components/ui/badge.tsx" },
   { id: "alerts", title: "Alerts", file: "components/ui/alert.tsx, alert-provider.tsx" },
@@ -243,6 +250,9 @@ export default function ComponentsPage() {
               <Field label="Email (error)" name="demo_error" type="email" icon={Mail} defaultValue="amina@" error="Enter a valid email address." />
               <Field label="Check-in" name="demo_date" type="date" icon={CalendarDays} />
               <Field label="Search (disabled)" name="demo_search" icon={Search} placeholder="Wallet code" disabled />
+              <SelectField label="Room type" name="demo_room_type" icon={BedDouble} options={ROOM_TYPES} />
+              <SelectField label="Room type (error)" name="demo_room_type_error" icon={BedDouble} options={ROOM_TYPES} error="Choose a room type." />
+              <SelectField label="Room type (compact)" name="demo_room_type_compact" icon={BedDouble} options={ROOM_TYPES} compact hint="Compact, for dense bars." />
             </div>
           </Section>
 
