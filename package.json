@@ -7,13 +7,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "check:local": "node contracts/scripts/check-upload-limit.mjs && node contracts/scripts/check-request-security.mjs && node contracts/scripts/check-payment-review.mjs && node contracts/scripts/check-staff-forms.mjs",
+    "deployment:check": "node --env-file-if-exists=.env.local contracts/scripts/check-deployment.mjs",
+    "chain:setup": "node contracts/scripts/setup-amoy.mjs",
+    "chain:compile": "node contracts/scripts/compile.mjs",
+    "chain:deploy": "node --env-file=.env.local contracts/scripts/deploy.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
+    "ethers": "6.17.0",
     "lucide-react": "^1.49.0",
-    "next": "16.3.7",
+    "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1"
@@ -24,8 +30,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.7",
+    "eslint-config-next": "16.3.8",
+    "solc": "0.8.37",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "solc": {
+      "tmp": "0.2.7"
+    }
   }
 }

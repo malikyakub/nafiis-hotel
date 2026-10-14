@@ -9,6 +9,7 @@ export const metadata: Metadata = { title: "Sign in" };
 
 const MESSAGES: Record<string, { status: Status; text: string }> = {
   "password-updated": { status: "success", text: "Password updated. Sign in with your new password." },
+  "account-created": { status: "success", text: "Your account is ready. Sign in with your email and password." },
   "link-invalid": { status: "danger", text: "That link is invalid or has expired. Request a new one." },
 };
 
@@ -18,7 +19,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <>
-      <PageHeader size="card" title="Sign in" subtitle="Guests and staff sign in here." />
+      <PageHeader size="card" title="Sign in" subtitle="Guests, admins, and hotel staff can all sign in here." />
       {notice && (
         <Alert status={notice.status}>
           {notice.text}

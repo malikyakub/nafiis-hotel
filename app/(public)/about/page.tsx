@@ -89,7 +89,7 @@ export default function AboutPage() {
         </Container>
       </section>
 
-      <section id="gallery" className="scroll-mt-20 border-t border-border bg-surface py-16 md:py-28">
+      <section id="gallery" className="border-t border-border bg-surface py-16 md:py-28">
         <Container className="flex flex-col gap-8 md:gap-10">
           <Reveal>
             <SectionHeading eyebrow="Gallery" title="Inside Nafiis, and the city around it" lead="Filter by what you want to see, and open any photo to browse full screen." />
