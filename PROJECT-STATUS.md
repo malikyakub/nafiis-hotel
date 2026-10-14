@@ -1,5 +1,21 @@
 # Nafiis Hotel — source handoff status
 
+## Fast database answers — 14 October 2026
+
+Routine English questions now bypass Ollama. Fixed anonymous/RLS reads return active room base prices/capacities, available food-menu items and public hotel settings, cached for 30 seconds. Booking/payment guidance uses the hotel guide. Private booking status redirects to protected flows; chat never queries customer records or changes data. Availability remains in the booking form. Other wording/languages use AI fallback and can still be slower.
+
+Eight live direct-answer checks took 26–1,039 ms locally (cached room follow-up: 30 ms); prices/capacities matched the database. Request/session checks and isolated cache coalescing, expiry, failure/recovery and intent-boundary tests passed. Live AI fallback still works. No schema, RLS or grant changes; no service-role key used. See docs/CUSTOMER-CHAT.md for setup, limits and test commands. This is source preparation before deployment.
+
+
+## Customer AI chatbot — 14 October 2026
+
+Added the Ask Nafiis panel to public/customer routes and a server-only n8n chat bridge. Existing hotel styling and booking, payment and blockchain behavior remain intact. The feature branch is based on the latest predeployment handoff; it does not merge main or dev.
+
+Local validation: live hotel-address and booking-guidance replies, conversation reset/isolation, request validation, TypeScript and production build passed. New server-only configuration was absent from 135 browser bundles. An optional provider-failure simulation was blocked by automatic approval review and was not performed.
+
+See docs/CUSTOMER-CHAT.md for setup. No credentials or local environment files are included. The existing n8n workflow was configured locally, not deployed with this commit. Public use still requires hosted n8n/Ollama over HTTPS, endpoint authentication/gateway limits, server-only host configuration and a compatible function timeout. No production website deployment is included.
+
+
 ## Latest source update — 13 October 2026
 
 The owner requested publishing the remaining local hotel work for partner review. This update includes password-only login for all roles, signup-only email codes, receipt/transaction-number validation, front-desk availability/capacity checks, report date validation, housekeeping filters and the three workstream reviews. Existing frontend styling and assets are preserved. Recovery and role/session checks remain intact.
