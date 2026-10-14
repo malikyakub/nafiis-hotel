@@ -12,7 +12,6 @@ import { addDays, DateTimeField, isoDay, type DateTime } from "./date-time-field
 import { Field } from "./field";
 import { ListboxField, type ListboxOption } from "./listbox-field";
 import { SubmitButton } from "./submit-button";
-import { BookingStepCount } from "./booking-steps";
 
 type QuickBookingProps = {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
@@ -29,6 +28,11 @@ const GUEST_OPTIONS: ListboxOption[] = [1, 2, 3, 4, 5, 6].map((n) => ({
 }));
 
 const SAVED_CONTACT_KEY = "nafiis-saved-contact-v1";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const shortDate = (day: string) =>
+  new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 function restore(date?: string, time?: string): DateTime | null {
   return date && time ? { date, time } : null;
@@ -85,7 +89,7 @@ function forgetButton(showAlert: ShowAlert) {
 // Stay and contact details lead into the third step on the private payment page.
 // No account needed; the guest is offered
 // to remember their contact details on this device after booking, never before.
-// The bar is one row per step; every message goes to the top-right alerts. Errors and alerts
+// Under the header the bar is one row per step; every message goes to the top-right alerts. Errors and alerts
 // with actions stay until dismissed.
 export function QuickBooking({ action, rooms, className, initialStay, notice }: QuickBookingProps) {
   const showAlert = useAlert();
@@ -165,11 +169,31 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
     setStep(2);
   }
 
+  const nights = checkIn && checkOut ? Math.round((Date.parse(checkOut.date) - Date.parse(checkIn.date)) / DAY_MS) : 0;
+  const roomLabel = rooms.find((option) => option.value === room)?.label ?? "";
+  const guestsLabel = GUEST_OPTIONS.find((option) => option.value === guests)?.label;
   const readyForPayment = Boolean(state.success && state.bookingId);
 
   return (
     <div className={cn("flex flex-col items-center gap-3", className)}>
-      <Card className="w-full p-3! shadow-[0_24px_60px_-28px_rgb(20_32_43/0.45)]">
+      <Card className="flex w-full flex-col gap-4 p-4 shadow-[0_24px_60px_-28px_rgb(20_32_43/0.45)] md:p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 className="font-display text-[22px] leading-7 font-normal">
+            {readyForPayment ? "Your stay is saved. Next, payment." : step === 1 ? "Choose your stay" : "Add your guest details"}
+          </h2>
+          <p className="flex min-w-0 items-baseline gap-2 text-xs text-muted">
+            {step === 2 && (
+              <span className="truncate">
+                <span className="font-medium text-foreground">
+                  {checkIn && shortDate(checkIn.date)} – {checkOut && shortDate(checkOut.date)}
+                </span>{" "}
+                · {nights} {nights === 1 ? "night" : "nights"} · {guestsLabel} · {roomLabel}
+              </span>
+            )}
+            <span className="shrink-0 font-semibold uppercase tracking-[0.16em] text-accent">Step {readyForPayment ? 3 : step}/3</span>
+          </p>
+        </div>
+
         <form action={formAction} noValidate>
           {/* Both steps stay in the form so one submit sends everything; `hidden` only hides one. */}
           <div hidden={step !== 1 || readyForPayment} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)_minmax(0,1.25fr)_auto]">
@@ -206,13 +230,10 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
             </div>
             <ListboxField label="Guests" name="guests" icon={Users} options={GUEST_OPTIONS} value={guests} onChange={setGuests} />
             <ListboxField label="Room" name="room_type" icon={BedDouble} options={rooms} value={room} onChange={setRoom} />
-            <div className="col-span-2 flex items-center gap-3 lg:col-span-1">
-              <BookingStepCount current={1} />
-              <Button onClick={continueToDetails} className="flex-1 lg:flex-none">
-                Guest details
-                <ArrowRight aria-hidden />
-              </Button>
-            </div>
+            <Button onClick={continueToDetails} className="col-span-2 w-full lg:col-span-1 lg:w-auto">
+              Guest details
+              <ArrowRight aria-hidden />
+            </Button>
           </div>
 
           <div hidden={step !== 2 || readyForPayment} className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[1.2fr_1fr_1.2fr_auto]">
@@ -256,7 +277,6 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
               onChange={event => setContact(current => ({ ...current, email: event.target.value }))}
             />
             <div className="col-span-2 flex items-center gap-2 lg:col-span-1">
-              <BookingStepCount current={2} className="mr-1" />
               <Button variant="ghost" onClick={() => setStep(1)} aria-label="Back to your stay" className="w-11 shrink-0 px-0">
                 <ArrowLeft aria-hidden />
               </Button>
@@ -268,8 +288,7 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
         </form>
 
         {readyForPayment && (
-          <div className="flex items-center justify-end gap-3">
-            <BookingStepCount current={3} />
+          <div className="flex justify-end">
             <ButtonLink href={`/booking/${state.bookingId}`} className="flex-1 lg:flex-none">
               Continue to payment
               <ArrowRight aria-hidden />

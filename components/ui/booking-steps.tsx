@@ -7,17 +7,6 @@ const steps = [
   { title: "Payment", detail: "Pay & upload receipt", icon: CreditCard },
 ];
 
-// One-line progress for dense layouts: dots plus "2/3", read out as "Step 2 of 3".
-export function BookingStepCount({ current, className }: { current: 1 | 2 | 3; className?: string }) {
-  return <p className={cn("flex shrink-0 items-center gap-1.5 text-xs font-semibold tabular-nums text-muted", className)}>
-    <span className="sr-only">Step {current} of {steps.length}</span>
-    <span aria-hidden className="flex items-center gap-1">
-      {steps.map((step, index) => <span key={step.title} className={cn("h-1.5 rounded-full transition-all", index + 1 === current ? "w-4 bg-brand" : index + 1 < current ? "w-1.5 bg-brand" : "w-1.5 bg-border-strong")} />)}
-    </span>
-    <span aria-hidden>{current}/{steps.length}</span>
-  </p>;
-}
-
 export function BookingSteps({ current }: { current: 1 | 2 | 3 }) {
   return <ol aria-label="Booking progress" className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-background p-2 sm:gap-3 sm:p-3">
     {steps.map((step, index) => {
