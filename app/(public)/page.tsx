@@ -97,11 +97,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       </section>
 
       {/* Quick booking: pulled up by half its height (--qb-overlap) so it sits half on the hero.
-          Card is 130px tall in one row (lg+), 242px stacked at md, 250px on phones. */}
+          Card is 152px tall in one row (lg+), 264px stacked at md, 312px on phones (step 1). */}
       <section
         id="book"
         aria-label="Quick booking"
-        className="relative z-10 -mt-[var(--qb-overlap)] scroll-mt-28 [--qb-overlap:125px] md:[--qb-overlap:121px] lg:[--qb-overlap:65px]"
+        className="relative z-10 -mt-[var(--qb-overlap)] scroll-mt-28 [--qb-overlap:156px] md:[--qb-overlap:132px] lg:[--qb-overlap:76px]"
       >
         <Container className="animate-hero-in [animation-delay:320ms]">
           <QuickBooking action={requestBooking} rooms={ROOM_OPTIONS} initialStay={initialStay} notice={roomTaken ? ROOM_TAKEN : undefined} />

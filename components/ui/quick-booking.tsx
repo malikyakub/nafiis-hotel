@@ -177,10 +177,19 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
   return (
     <div className={cn("flex flex-col items-center gap-3", className)}>
       <Card className="flex w-full flex-col gap-4 p-4 shadow-[0_24px_60px_-28px_rgb(20_32_43/0.45)] md:p-5">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 className="font-display text-[22px] leading-7 font-normal">
-            {readyForPayment ? "Your stay is saved. Next, payment." : step === 1 ? "Choose your stay" : "Add your guest details"}
-          </h2>
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h2 className="font-display text-[22px] leading-7 font-normal">
+              {readyForPayment ? "Your stay is saved. Next, payment." : step === 1 ? "Choose your stay" : "Add your guest details"}
+            </h2>
+            <p className="text-sm text-muted">
+              {readyForPayment
+                ? "Pay with EVC Plus or eDahab, then upload your screenshot."
+                : step === 1
+                  ? "Pick your dates, guests and room. No account needed."
+                  : "Reception uses these to confirm your booking and reach you."}
+            </p>
+          </div>
           <p className="flex min-w-0 items-baseline gap-2 text-xs text-muted">
             {step === 2 && (
               <span className="truncate">
