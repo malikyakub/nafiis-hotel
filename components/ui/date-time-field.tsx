@@ -107,7 +107,7 @@ export function DateTimeField({
   );
   useDismiss(rootRef, open, (reason) => {
     setOpenState(false);
-    if (reason === "escape") triggerRef.current?.focus();
+    if (reason === "escape") triggerRef.current?.focus({ preventScroll: true });
   });
 
   function show() {
@@ -130,7 +130,7 @@ export function DateTimeField({
     if (dateOnly) {
       onChange({ date: day, time: "" });
       setOpenState(false);
-      triggerRef.current?.focus();
+      triggerRef.current?.focus({ preventScroll: true });
       return;
     }
     setDraft(day);
@@ -141,7 +141,7 @@ export function DateTimeField({
   function pickTime(time: string) {
     onChange({ date: draft, time });
     setOpenState(false);
-    triggerRef.current?.focus();
+    triggerRef.current?.focus({ preventScroll: true });
   }
 
   // Arrow keys move through days (and across months); Enter picks.

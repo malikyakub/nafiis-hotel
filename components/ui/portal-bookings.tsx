@@ -48,12 +48,18 @@ export function ChainProofLink({ proof }: { proof?: ChainProof }) {
 
 // Bookings table with a detail drawer. Admin sees every booking with a status filter,
 // reception gets front-desk tabs, a guest sees their own bookings and can upload a receipt.
-export function PortalBookings({ role }: { role: Portal }) {
+export function PortalBookings({ role, refreshSignal = 0, initialView }: {
+  role: Portal;
+  // Bump to reload the list, e.g. after the walk-in form creates a booking.
+  refreshSignal?: number;
+  // Reception starts on today's arrivals unless told otherwise.
+  initialView?: DeskView;
+}) {
   const router = useRouter();
   const showAlert = useAlert();
   const staff = role !== "guest";
   const canReview = role === "admin";
-  const [desk, setDesk] = useState<DeskView>(role === "receptionist" ? "arrivals" : "");
+  const [desk, setDesk] = useState<DeskView>(initialView ?? (role === "receptionist" ? "arrivals" : ""));
   const [status, setStatus] = useState("");
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
@@ -76,7 +82,7 @@ export function PortalBookings({ role }: { role: Portal }) {
   if (search) params.set("q", search);
   const url = `${staff ? "/api/staff/bookings" : "/api/bookings"}?${params}`;
   // Each load is keyed by what it fetched, so loading and stale results are derived, not reset in the effect.
-  const loadKey = `${url}#${version}`;
+  const loadKey = `${url}#${version}.${refreshSignal}`;
   const [loaded, setLoaded] = useState<{ key: string; result: Result | null; error: string }>({ key: "", result: null, error: "" });
   const loading = loaded.key !== loadKey;
   const result = loading ? null : loaded.result;

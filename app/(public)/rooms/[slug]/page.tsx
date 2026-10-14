@@ -10,9 +10,8 @@ import { Reveal } from "@/components/ui/reveal";
 import { RoomCard } from "@/components/ui/room-card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
-import { brand } from "@/lib/brand";
 import { DEMO, roomBySlug, ROOMS, usd } from "@/lib/content";
-import { liveRooms } from "@/lib/live-content";
+import { liveContact, liveRooms } from "@/lib/live-content";
 
 export function generateStaticParams() {
   return ROOMS.map((room) => ({ slug: room.slug }));
@@ -24,7 +23,7 @@ export async function generateMetadata({ params }: PageProps<"/rooms/[slug]">): 
 }
 
 export default async function RoomPage({ params }: PageProps<"/rooms/[slug]">) {
-  const ROOMS = await liveRooms();
+  const [ROOMS, contact] = await Promise.all([liveRooms(), liveContact()]);
   const slug = (await params).slug;
   const room = ROOMS.find(candidate=>candidate.slug===slug);
   if (!room) notFound();
@@ -102,17 +101,17 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[slug]">) {
               </div>
               <p className="text-[15px] leading-[22px] text-muted">{room.specs}</p>
               <div className="flex flex-col gap-2">
-                <ButtonLink href="/#book">
+                <ButtonLink href={`/?room_type=${room.bookingType}#book`}>
                   Book this room
                   <ArrowRight aria-hidden />
                 </ButtonLink>
-                <ButtonLink href={`tel:${brand.contact.phoneHref}`} variant="ghost">
+                <ButtonLink href={`tel:${contact.phoneHref}`} variant="ghost">
                   <Phone aria-hidden />
                   Call reception
                 </ButtonLink>
               </div>
               <p className="border-t border-border pt-4 text-[13px] leading-[18px] text-muted">
-                No account needed. Pay at reception or online.
+                No account needed. Pay with EVC Plus or eDahab within 24 hours.
               </p>
             </Card>
           </Reveal>

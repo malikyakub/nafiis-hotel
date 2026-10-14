@@ -30,7 +30,7 @@ const COLUMNS: Record<TableResource, Column<Row>[]> = {
     { key: "type", header: "Type", cell: (r) => text(relation(r.room_types).name) },
     { key: "floor", header: "Floor", cell: (r) => text(r.floor) },
     { key: "rate", header: "Nightly rate", className: "text-right", cell: (r) => formatMoney(r.price_override ?? relation(r.room_types).base_price) },
-    { key: "status", header: "Housekeeping", cell: (r) => <StatusBadge value={String(r.status)} /> },
+    { key: "status", header: "Housekeeping", cell: (r) => <StatusBadge value={String(r.status)} label={HOUSEKEEPING[String(r.status)]} /> },
     { key: "active", header: "Active", cell: (r) => yesNo(r.is_active) },
   ],
   room_types: [
@@ -150,6 +150,8 @@ export function PortalResource({ resource, role }: { resource: TableResource; ro
 
   const term = search.trim().toLowerCase();
   const rows = data ? data.rows.filter((r) => (!term || SEARCH[resource](r).toLowerCase().includes(term)) && (!roomStatus || r.status === roomStatus)) : null;
+  // Room numbers sort naturally (2 before 10), whatever the database's text order.
+  if (resource === "rooms") rows?.sort((a, b) => text(a.room_number).localeCompare(text(b.room_number), undefined, { numeric: true }));
   const selected = data?.rows.find((r) => r.id === selectedId) ?? null;
   const drawerOpen = adding || Boolean(selected);
 
@@ -255,7 +257,7 @@ export function PortalResource({ resource, role }: { resource: TableResource; ro
       />
       {data && <Pagination page={page} pageSize={data.pageSize} total={data.total} onPage={setPage} disabled={loading || busy} />}
 
-      <Drawer open={drawerOpen} onClose={close} title={adding ? `Add ${NOUN[resource]}` : selected ? TITLE[resource](selected) : ""} subtitle={selected?.status ? <StatusBadge value={String(selected.status)} /> : undefined}>
+      <Drawer open={drawerOpen} onClose={close} title={adding ? `Add ${NOUN[resource]}` : selected ? TITLE[resource](selected) : ""} subtitle={selected?.status ? <StatusBadge value={String(selected.status)} label={resource === "rooms" ? HOUSEKEEPING[String(selected.status)] : undefined} /> : undefined}>
         {drawerOpen && (editing || adding ? (
           <form onSubmit={save} className="flex flex-col gap-4">
             {fields.map((field) => <FormField key={field.name} field={field} row={adding ? null : selected} options={options} />)}

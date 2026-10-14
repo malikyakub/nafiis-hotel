@@ -36,7 +36,7 @@ export function ListboxField({ label, name, icon: Icon, options, value, defaultV
 
   const close = useCallback((refocus: boolean) => {
     setOpen(false);
-    if (refocus) triggerRef.current?.focus();
+    if (refocus) triggerRef.current?.focus({ preventScroll: true });
   }, []);
   useDismiss(rootRef, open, (reason) => close(reason === "escape"));
 

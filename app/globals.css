@@ -351,6 +351,11 @@ body {
   }
 }
 
+/* Anything scrolled into view (focus, in-page links) stops below the sticky header, not under it. */
+html {
+  scroll-padding-top: 5rem;
+}
+
 /* In-page links (#book, #menu, back to top) glide instead of jumping. */
 @media (prefers-reduced-motion: no-preference) {
   html {

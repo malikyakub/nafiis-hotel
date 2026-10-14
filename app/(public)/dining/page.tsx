@@ -63,7 +63,7 @@ export default async function DiningPage() {
         </Container>
       </section>
 
-      <section id="menu" className="scroll-mt-20 border-y border-border bg-surface py-16 md:py-28">
+      <section id="menu" className="border-y border-border bg-surface py-16 md:py-28">
         <Container className="flex flex-col gap-10">
           <Reveal>
             <SectionHeading eyebrow="Menu" title="What's cooking" lead="A taste of the menu. Dishes change with the market and the catch." />

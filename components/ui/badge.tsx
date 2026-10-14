@@ -1,5 +1,6 @@
 import { CircleCheck, CircleDot, CircleX, Info, TriangleAlert, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { humanize } from "@/lib/format";
 import type { Status } from "./status";
 
 const TONES: Record<Status, { className: string; Icon: LucideIcon }> = {
@@ -58,12 +59,8 @@ const DOMAIN_STATUS: Record<string, Status> = {
   served: "neutral",
 };
 
-// Badge for a database status value, e.g. <StatusBadge value="pending_payment" />.
-export function StatusBadge({ value }: { value: string }) {
-  const label = value.replaceAll("_", " ");
-  return (
-    <Badge status={DOMAIN_STATUS[value] ?? "neutral"} className="capitalize">
-      {label}
-    </Badge>
-  );
+// Badge for a database status value, e.g. <StatusBadge value="pending_payment" /> reads
+// "Pending payment". `label` overrides the wording, e.g. housekeeping shows "Ready" for available.
+export function StatusBadge({ value, label }: { value: string; label?: string }) {
+  return <Badge status={DOMAIN_STATUS[value] ?? "neutral"}>{label ?? humanize(value)}</Badge>;
 }

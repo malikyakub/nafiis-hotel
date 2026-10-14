@@ -1,5 +1,5 @@
 import { ArrowRight, Phone } from "lucide-react";
-import { brand } from "@/lib/brand";
+import { liveContact } from "@/lib/live-content";
 import { ButtonLink } from "./button";
 import { Container } from "./container";
 import { Reveal } from "./reveal";
@@ -7,10 +7,11 @@ import { Reveal } from "./reveal";
 type CtaBandProps = { title?: string; text?: string };
 
 // Closing call to action for the public pages: book, or call reception.
-export function CtaBand({
+export async function CtaBand({
   title = "Ready when you are.",
   text = "Book in a few minutes, no account needed. Or call reception and we will arrange it for you.",
 }: CtaBandProps) {
+  const contact = await liveContact();
   return (
     <section className="py-16 md:py-24">
       <Container>
@@ -23,9 +24,9 @@ export function CtaBand({
                 Book a room
                 <ArrowRight aria-hidden />
               </ButtonLink>
-              <ButtonLink href={`tel:${brand.contact.phoneHref}`} variant="ghost-light">
+              <ButtonLink href={`tel:${contact.phoneHref}`} variant="ghost-light">
                 <Phone aria-hidden />
-                {brand.contact.phone}
+                {contact.phone}
               </ButtonLink>
             </div>
           </div>

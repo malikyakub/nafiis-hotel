@@ -21,7 +21,8 @@ const AlertContext = createContext<ShowAlert | null>(null);
 
 const DEFAULT_DURATION_MS = 6000;
 
-// Wraps the app once (root layout). Alerts stack in the top-right corner.
+// Wraps the app once (root layout). Alerts stack in the top-right corner, below the sticky
+// site and portal headers so they never cover header buttons.
 export function AlertProvider({ children }: { children: React.ReactNode }) {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const nextId = useRef(0);
@@ -50,7 +51,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-4 top-4 z-50 flex flex-col items-end gap-2.5 sm:left-auto sm:w-[360px]"
+        className="pointer-events-none fixed inset-x-4 top-20 z-50 flex flex-col items-end gap-2.5 sm:left-auto sm:w-[360px]"
       >
         {alerts.map((alert) => (
           <Alert

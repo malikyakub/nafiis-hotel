@@ -76,7 +76,7 @@ export default async function RoomsPage() {
                     <ButtonLink href={`/rooms/${room.slug}`} variant="secondary">
                       Details
                     </ButtonLink>
-                    <ButtonLink href="/#book" aria-label={`Book the ${room.name}`}>
+                    <ButtonLink href={`/?room_type=${room.bookingType}#book`} aria-label={`Book the ${room.name}`}>
                       Book
                       <ArrowRight aria-hidden />
                     </ButtonLink>

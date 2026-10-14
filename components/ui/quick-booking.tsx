@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, BedDouble, CalendarCheck, CalendarDays, Mail, Phone, User, UserRoundCheck, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { initialFormState, type FormState } from "@/lib/auth/form-state";
 import { cn } from "@/lib/cn";
@@ -11,6 +12,7 @@ import { Card } from "./card";
 import { addDays, DateTimeField, isoDay, type DateTime } from "./date-time-field";
 import { Field } from "./field";
 import { ListboxField, type ListboxOption } from "./listbox-field";
+import { forgetButton, readSavedContact, stashPendingContact } from "./saved-contact";
 import { SubmitButton } from "./submit-button";
 
 type QuickBookingProps = {
@@ -20,14 +22,14 @@ type QuickBookingProps = {
   /** Dates carried back when another guest paid for the chosen room first. */
   initialStay?: { check_in: string; check_out: string };
   notice?: string;
+  /** Room type chosen on a room page ("Book this room"). */
+  initialRoom?: string;
 };
 
 const GUEST_OPTIONS: ListboxOption[] = [1, 2, 3, 4, 5, 6].map((n) => ({
   value: String(n),
   label: n === 1 ? "1 guest" : `${n} guests`,
 }));
-
-const SAVED_CONTACT_KEY = "nafiis-saved-contact-v1";
 
 // Phone numbers are Somali: the guest types the local part, the form posts "+252 <local>".
 const DIAL_CODE = "+252";
@@ -62,63 +64,21 @@ function StayLink({ active }: { active: boolean }) {
 }
 
 type StayErrors = Partial<Record<"check_in" | "check_out", string>>;
-type ShowAlert = ReturnType<typeof useAlert>;
-
-// Optional device storage of contact details. Its outcome is an alert, never a row in the bar.
-function rememberDetails(showAlert: ShowAlert, values: FormState["values"]) {
-  if (!values) return;
-  try {
-    localStorage.setItem(SAVED_CONTACT_KEY, JSON.stringify({
-      full_name: values.full_name, phone: values.phone, email: values.email,
-    }));
-    showAlert({ tag: "quick-booking-device", status: "success", durationMs: null, message: <><p>Details saved on this device for next time.</p>{forgetButton(showAlert)}</> });
-  } catch {
-    showAlert({ tag: "quick-booking-device", status: "warning", durationMs: null, message: "This browser could not save your details. Your booking is still saved." });
-  }
-}
-
-function forgetDetails(showAlert: ShowAlert) {
-  try {
-    localStorage.removeItem(SAVED_CONTACT_KEY);
-    showAlert({ tag: "quick-booking-device", status: "success", message: "Saved details removed from this device." });
-  } catch {
-    showAlert({ tag: "quick-booking-device", status: "warning", durationMs: null, message: "Unable to remove saved details. Use your browser's site-data settings." });
-  }
-}
-
-function forgetButton(showAlert: ShowAlert) {
-  return <Button size="sm" variant="secondary" className="mt-2" onClick={() => forgetDetails(showAlert)}>Forget saved details</Button>;
-}
-
 // Stay and contact details lead into the third step on the private payment page.
-// No account needed; the guest is offered
-// to remember their contact details on this device after booking, never before.
-// Under the header the bar is one row per step; every message goes to the top-right alerts. Errors and alerts
-// with actions stay until dismissed.
-export function QuickBooking({ action, rooms, className, initialStay, notice }: QuickBookingProps) {
+// No account needed; the payment page offers to remember the contact details on this
+// device after booking, never before. Under the header the bar is one row per step; every
+// message goes to the top-right alerts. Errors and alerts with actions stay until dismissed.
+export function QuickBooking({ action, rooms, className, initialStay, notice, initialRoom }: QuickBookingProps) {
   const showAlert = useAlert();
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(async (prev: FormState, formData: FormData) => {
     const next = await action(prev, formData);
     if (next.error) showAlert({ tag: "quick-booking", status: "info", title: "Almost there", message: next.error, durationMs: null });
-    if (next.success) {
-      showAlert({
-        tag: "quick-booking",
-        status: "success",
-        title: "Booking request saved",
-        durationMs: null,
-        message: (
-          <div className="flex flex-col gap-2">
-            <p>{next.success}</p>
-            <p className="text-muted">
-              Optional: save your name, phone and email on this device, or create an account. Avoid saving on shared computers.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" onClick={() => rememberDetails(showAlert, next.values)}>Save details</Button>
-              <ButtonLink size="sm" variant="secondary" href="/register">Create an account</ButtonLink>
-            </div>
-          </div>
-        ),
-      });
+    if (next.success && next.bookingId) {
+      // Straight on to payment; the details go along in this tab for the "save on this device" offer.
+      if (next.values) stashPendingContact(next.bookingId, { full_name: next.values.full_name, phone: next.values.phone, email: next.values.email });
+      showAlert({ tag: "quick-booking", status: "success", message: "Booking saved. Next, payment." });
+      router.push(`/booking/${next.bookingId}`);
     }
     return next;
   }, initialFormState);
@@ -129,7 +89,7 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
   const [checkOut, setCheckOut] = useState(() => restore(state.values?.check_out, state.values?.check_out_time)
     ?? (initialStay && initialStay.check_in >= today && initialStay.check_out > initialStay.check_in ? { date: initialStay.check_out, time: DEMO.checkOut } : null));
   const [guests, setGuests] = useState(state.values?.guests ?? "2");
-  const [room, setRoom] = useState(state.values?.room_type ?? rooms[0]?.value ?? "");
+  const [room, setRoom] = useState(state.values?.room_type ?? (rooms.some((r) => r.value === initialRoom) ? initialRoom! : rooms[0]?.value ?? ""));
   const [errors, setErrors] = useState<StayErrors>({});
   const [openPicker, setOpenPicker] = useState<"in" | "out" | null>(null);
   const [contact, setContact] = useState({ full_name: "", phone: "", email: "" });
@@ -164,13 +124,12 @@ export function QuickBooking({ action, rooms, className, initialStay, notice }: 
       return;
     }
     dismissStayError.current?.();
-    try {
-      const saved = JSON.parse(localStorage.getItem(SAVED_CONTACT_KEY) || "null");
-      if (saved && typeof saved.full_name === "string" && typeof saved.phone === "string" && typeof saved.email === "string") {
-        setContact(current => ({ full_name: current.full_name || saved.full_name.slice(0,120), phone: current.phone || localPhone(saved.phone).slice(0,30), email: current.email || saved.email.slice(0,254) }));
-        showAlert({ tag: "quick-booking-device", status: "info", durationMs: null, message: <><p>Filled in with the details saved on this device.</p>{forgetButton(showAlert)}</> });
-      }
-    } catch { /* Optional device storage must never prevent a booking. */ }
+    // Optional device storage must never prevent a booking; readSavedContact never throws.
+    const saved = readSavedContact();
+    if (saved) {
+      setContact(current => ({ full_name: current.full_name || saved.full_name, phone: current.phone || localPhone(saved.phone), email: current.email || saved.email }));
+      showAlert({ tag: "saved-contact", status: "info", durationMs: null, message: <><p>Filled in with the details saved on this device.</p>{forgetButton(showAlert)}</> });
+    }
     setStep(2);
   }
 

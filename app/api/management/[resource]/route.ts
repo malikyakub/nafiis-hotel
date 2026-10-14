@@ -16,7 +16,9 @@ export async function GET(request:Request,context:Context){
   const page=Number(new URL(request.url).searchParams.get("page")||1);
   if(!Number.isSafeInteger(page)||page<1||page>100000)throw new AccessError(400,"Invalid page.");
   const selections:Record<Resource,string>={rooms:"*,room_types(name,capacity,base_price)",room_types:"*",food_menu:"*",food_orders:"*,bookings(reference)",guests:"*,profiles(full_name,phone)",hotel_settings:"*"};
-  const result=await supabase.from(resource).select(selections[resource],{count:"exact"}).order(resource==="hotel_settings"?"id":"created_at",{ascending:false}).range((page-1)*50,page*50-1);
+  // Rooms list by room number; everything else newest first.
+  const order:[string,boolean]=resource==="rooms"?["room_number",true]:[resource==="hotel_settings"?"id":"created_at",false];
+  const result=await supabase.from(resource).select(selections[resource],{count:"exact"}).order(order[0],{ascending:order[1]}).range((page-1)*50,page*50-1);
   if(result.error)throw result.error;
   return json({rows:result.data,total:result.count||0,page,pageSize:50});
  }catch(error){return failure("management.read",error)}

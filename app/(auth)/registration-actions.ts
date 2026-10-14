@@ -74,6 +74,7 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   if (password !== confirm) return { error: "Passwords do not match.", field: "confirm_password", values };
 
 
+  let confirmed = false;
   try {
     const supabase = await createServerClient();
     const origin = await siteOrigin();
@@ -98,14 +99,16 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
       return { error: "Could not create the account. Please try again.", values };
     }
 
-    // Keep signup confirmation separate: never send a login OTP fallback.
+    // A session means the account is already confirmed (no email step). Keep sign-up and
+    // sign-in separate: end this session and send the guest to sign in. Never a login OTP fallback.
     if (data.session) {
       await supabase.auth.signOut();
-      return { error: "Account created, but registration email verification is not configured. Contact the hotel before continuing.", values };
+      confirmed = true;
     }
   } catch (error) {
     return failure(error, values);
   }
+  if (confirmed) redirect("/login?message=account-created");
 
   return { success: "Check your inbox for your verification code.", verification: "signup", values: { email } };
 }

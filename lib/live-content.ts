@@ -1,5 +1,8 @@
 import "server-only";
+import {cache} from "react";
 import {connection} from "next/server";
+import {brand} from "./brand";
+import {createAdminClient} from "./supabase/admin";
 import {ROOMS,MENU,usd} from "./content";
 import {createServerClient} from "./supabase/server";
 import {logError} from "./log";
@@ -19,3 +22,25 @@ export async function liveMenu(){
   return categories.map((category,index)=>({id:`menu-${index}`,label:category,hours:MENU.find(m=>m.label===category)?.hours||"Ask reception",items:data.filter(m=>m.category===category).map(m=>({name:m.name,text:m.description,price:usd(Number(m.price))}))}));
  }catch(error){logError("public.menu",error);return MENU;}
 }
+
+export type HotelContact = { phone: string; phoneHref: string; email: string; address: string };
+
+// Public contact details, edited by the administrator in Settings. Falls back to lib/brand.ts
+// until the settings row has them. Only public fields are read; cached once per request.
+export const liveContact = cache(async (): Promise<HotelContact> => {
+  const fallback = brand.contact;
+  const result: HotelContact = {
+    phone: fallback.phone,
+    phoneHref: fallback.phoneHref,
+    email: fallback.email,
+    address: `${fallback.street}, ${fallback.district}, ${brand.city}`,
+  };
+  try {
+    const { data, error } = await createAdminClient().from("hotel_settings").select("phone,email,address").eq("id", 1).maybeSingle();
+    if (error) throw error;
+    if (data?.phone?.trim()) { result.phone = data.phone.trim(); result.phoneHref = data.phone.replace(/[^\d+]/g, ""); }
+    if (data?.email?.trim()) result.email = data.email.trim();
+    if (data?.address?.trim()) result.address = data.address.trim();
+  } catch (error) { logError("public.contact", error); }
+  return result;
+});

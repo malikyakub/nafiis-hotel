@@ -9,6 +9,7 @@ export const metadata: Metadata = { title: "Sign in" };
 
 const MESSAGES: Record<string, { status: Status; text: string }> = {
   "password-updated": { status: "success", text: "Password updated. Sign in with your new password." },
+  "account-created": { status: "success", text: "Your account is ready. Sign in with your email and password." },
   "link-invalid": { status: "danger", text: "That link is invalid or has expired. Request a new one." },
 };
 
