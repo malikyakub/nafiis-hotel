@@ -1,5 +1,14 @@
 # Nafiis Hotel — source handoff status
 
+## Customer AI chatbot — 14 October 2026
+
+Added the Ask Nafiis panel to public/customer routes and a server-only n8n chat bridge. Existing hotel styling and booking, payment and blockchain behavior remain intact. The feature branch is based on the latest predeployment handoff; it does not merge main or dev.
+
+Local validation: live hotel-address and booking-guidance replies, conversation reset/isolation, request validation, TypeScript and production build passed. New server-only configuration was absent from 135 browser bundles. An optional provider-failure simulation was blocked by automatic approval review and was not performed.
+
+See docs/CUSTOMER-CHAT.md for setup. No credentials or local environment files are included. The existing n8n workflow was configured locally, not deployed with this commit. Public use still requires hosted n8n/Ollama over HTTPS, endpoint authentication/gateway limits, server-only host configuration and a compatible function timeout. No production website deployment is included.
+
+
 ## Latest source update — 13 October 2026
 
 The owner requested publishing the remaining local hotel work for partner review. This update includes password-only login for all roles, signup-only email codes, receipt/transaction-number validation, front-desk availability/capacity checks, report date validation, housekeeping filters and the three workstream reviews. Existing frontend styling and assets are preserved. Recovery and role/session checks remain intact.
