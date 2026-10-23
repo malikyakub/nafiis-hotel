@@ -9,6 +9,7 @@ import { Reveal } from "@/components/ui/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { brand } from "@/lib/brand";
 import { DEMO, FAQ } from "@/lib/content";
+import { liveContact, type HotelContact } from "@/lib/live-content";
 import { photos } from "@/lib/photos";
 
 export const metadata: Metadata = {
@@ -16,10 +17,8 @@ export const metadata: Metadata = {
   description: `Call, email or visit ${brand.name} in ${brand.city}.`,
 };
 
-const { contact } = brand;
-const address = `${contact.street}, ${contact.district}, ${brand.city}, ${contact.country}`;
-
-const CHANNELS: { icon: LucideIcon; title: string; text: string; action: string; href: string; external?: boolean }[] = [
+// Phone, email and address come from hotel settings (admin › Settings).
+const channels = (contact: HotelContact, address: string): { icon: LucideIcon; title: string; text: string; action: string; href: string; external?: boolean }[] => [
   { icon: Phone, title: "Call reception", text: "The fastest way to book, change a stay or arrange a pickup.", action: contact.phone, href: `tel:${contact.phoneHref}` },
   { icon: Mail, title: "Email us", text: "For group bookings, invoices and anything that can wait a day.", action: contact.email, href: `mailto:${contact.email}` },
   {
@@ -32,7 +31,10 @@ const CHANNELS: { icon: LucideIcon; title: string; text: string; action: string;
   },
 ];
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const contact = await liveContact();
+  const address = contact.address;
+  const CHANNELS = channels(contact, address);
   return (
     <>
       <PageHero photo={photos.city} eyebrow="Contact" title="We are here to help" lead="Call, write or come by. Reception will look after you." />
@@ -76,7 +78,7 @@ export default function ContactPage() {
               </li>
               <li className="flex items-center gap-3">
                 <IconBubble icon={Plane} />
-                {contact.airportMinutes} minutes from Aden Adde International Airport. Pickup on request.
+                {brand.contact.airportMinutes} minutes from Aden Adde International Airport. Pickup on request.
               </li>
               <li className="flex items-center gap-3">
                 <IconBubble icon={Clock} />

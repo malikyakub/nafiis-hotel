@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Gloock } from "next/font/google";
 import { AlertProvider } from "@/components/ui/alert-provider";
+import { HotelChat } from "@/components/ui/hotel-chat";
 import { brand } from "@/lib/brand";
 import "./globals.css";
 
@@ -33,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geist.variable} ${gloock.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
-        <AlertProvider>{children}</AlertProvider>
+        <AlertProvider>{children}<HotelChat /></AlertProvider>
       </body>
     </html>
   );

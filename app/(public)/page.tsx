@@ -15,43 +15,49 @@ import { brand } from "@/lib/brand";
 import { FAQ, GALLERY, RESTAURANT_POINTS, ROOM_OPTIONS, ROOMS, STAY } from "@/lib/content";
 import { photos } from "@/lib/photos";
 import { requestBooking } from "./actions";
+import { liveContact, liveRooms, type HotelContact } from "@/lib/live-content";
 
-// Content (rooms, services, FAQ) lives in lib/content.ts; contact details in lib/brand.ts.
+// Content (rooms, services, FAQ) lives in lib/content.ts; phone, email and address come from
+// hotel settings (admin › Settings), with lib/brand.ts as the fallback.
 // "Book a room" links go to the quick booking card (#book) until the guest booking flow has a page.
 
 const { contact } = brand;
 
-const LOCATION: { icon: LucideIcon; text: React.ReactNode }[] = [
-  {
-    icon: MapPin,
-    text: (
-      <>
-        {contact.street}, {contact.district}
-        <br />
-        {brand.city}, {contact.country}
-      </>
-    ),
-  },
+const location = (live: HotelContact): { icon: LucideIcon; text: React.ReactNode }[] => [
+  { icon: MapPin, text: live.address },
   {
     icon: Phone,
     text: (
-      <a href={`tel:${contact.phoneHref}`} className="rounded-sm transition hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-        {contact.phone}
+      <a href={`tel:${live.phoneHref}`} className="rounded-sm transition hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+        {live.phone}
       </a>
     ),
   },
   {
     icon: Mail,
     text: (
-      <a href={`mailto:${contact.email}`} className="rounded-sm transition hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-        {contact.email}
+      <a href={`mailto:${live.email}`} className="rounded-sm transition hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+        {live.email}
       </a>
     ),
   },
   { icon: Plane, text: `${contact.airportMinutes} minutes from Aden Adde International Airport` },
 ];
 
-export default function HomePage() {
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const ROOM_TAKEN = "Another guest paid for the room you chose first, so your unpaid booking was cancelled. Do not send money for it. Please choose another room or dates below.";
+
+export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const [ROOMS, live] = await Promise.all([liveRooms(), liveContact()]);
+  const LOCATION = location(live);
+  // Set by the payment page when another guest's receipt was submitted first.
+  const query = await searchParams;
+  const roomTaken = query.notice === "room_taken";
+  const checkIn = typeof query.check_in === "string" && DAY.test(query.check_in) ? query.check_in : null;
+  const checkOut = typeof query.check_out === "string" && DAY.test(query.check_out) ? query.check_out : null;
+  const initialStay = roomTaken && checkIn && checkOut ? { check_in: checkIn, check_out: checkOut } : undefined;
+  // Set by a room page's "Book" button, e.g. /?room_type=garden#book.
+  const initialRoom = typeof query.room_type === "string" ? query.room_type : undefined;
   return (
     <>
       {/* Hero */}
@@ -86,19 +92,19 @@ export default function HomePage() {
       </section>
 
       {/* Quick booking: pulled up by half its height (--qb-overlap) so it sits half on the hero.
-          Card is ~130px tall in one row (lg+), ~250px stacked below that. */}
+          Card is 152px tall in one row (lg+), 264px stacked at md, 312px on phones (step 1). */}
       <section
         id="book"
         aria-label="Quick booking"
-        className="relative z-10 -mt-[var(--qb-overlap)] scroll-mt-28 [--qb-overlap:125px] lg:[--qb-overlap:65px]"
+        className="relative z-10 -mt-[var(--qb-overlap)] scroll-mt-8 [--qb-overlap:156px] md:[--qb-overlap:132px] lg:[--qb-overlap:76px]"
       >
         <Container className="animate-hero-in [animation-delay:320ms]">
-          <QuickBooking action={requestBooking} rooms={ROOM_OPTIONS} />
+          <QuickBooking action={requestBooking} rooms={ROOM_OPTIONS} initialStay={initialStay} notice={roomTaken ? ROOM_TAKEN : undefined} initialRoom={initialRoom} />
         </Container>
       </section>
 
       {/* Rooms */}
-      <section id="rooms" className="scroll-mt-20 pt-16 pb-16 md:pt-24 md:pb-28">
+      <section id="rooms" className="pt-16 pb-16 md:pt-24 md:pb-28">
         <Container>
           <Reveal>
             <SectionHeading
@@ -124,7 +130,7 @@ export default function HomePage() {
       </section>
 
       {/* Restaurant */}
-      <section id="restaurant" className="scroll-mt-20 border-y border-border bg-surface py-16 md:py-28">
+      <section id="restaurant" className="border-y border-border bg-surface py-16 md:py-28">
         <Container className="grid items-center gap-8 lg:grid-cols-[6fr_5fr] lg:gap-[72px]">
           <Reveal className="overflow-hidden rounded-[28px]">
             <Photo photo={photos.restaurant} sizes="(min-width: 1024px) 55vw, 100vw" className="h-72 rounded-[28px] md:h-[480px]" />
@@ -158,7 +164,7 @@ export default function HomePage() {
       </section>
 
       {/* Your stay */}
-      <section id="stay" className="lattice scroll-mt-20 bg-brand py-16 md:py-28">
+      <section id="stay" className="lattice bg-brand py-16 md:py-28">
         <Container className="flex flex-col gap-10 md:gap-12">
           <Reveal>
             <SectionHeading
@@ -196,7 +202,7 @@ export default function HomePage() {
       </section>
 
       {/* Gallery: the first seven photos; the full set with filters is on About. */}
-      <section id="gallery" className="scroll-mt-20 py-16 md:py-28">
+      <section id="gallery" className="py-16 md:py-28">
         <Container className="flex flex-col gap-8 md:gap-12">
           <Reveal>
             <SectionHeading
@@ -222,7 +228,7 @@ export default function HomePage() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="scroll-mt-20 border-t border-border py-16 md:py-28">
+      <section id="faq" className="border-t border-border py-16 md:py-28">
         <Container className="grid gap-8 lg:grid-cols-[2fr_3fr] lg:gap-20">
           <Reveal className="flex flex-col gap-6 lg:sticky lg:top-28 lg:self-start">
             <SectionHeading
@@ -241,7 +247,7 @@ export default function HomePage() {
       </section>
 
       {/* Location */}
-      <section id="location" className="scroll-mt-20 border-t border-border bg-surface py-16 md:py-28">
+      <section id="location" className="border-t border-border bg-surface py-16 md:py-28">
         <Container className="grid items-center gap-8 lg:grid-cols-2 lg:gap-20">
           <Reveal className="flex flex-col gap-6">
             <SectionHeading

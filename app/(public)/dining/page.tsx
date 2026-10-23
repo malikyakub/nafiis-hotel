@@ -11,6 +11,7 @@ import { Reveal } from "@/components/ui/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { MENU, RESTAURANT_POINTS } from "@/lib/content";
 import { photos } from "@/lib/photos";
+import { liveMenu } from "@/lib/live-content";
 
 export const metadata: Metadata = {
   title: "Dining",
@@ -23,7 +24,8 @@ const STEPS: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: ReceiptText, title: "Added to your bill", text: "Nothing to pay at the table. Every order shows on your bill, itemised." },
 ];
 
-export default function DiningPage() {
+export default async function DiningPage() {
+  const MENU = await liveMenu();
   return (
     <>
       <PageHero
@@ -61,7 +63,7 @@ export default function DiningPage() {
         </Container>
       </section>
 
-      <section id="menu" className="scroll-mt-20 border-y border-border bg-surface py-16 md:py-28">
+      <section id="menu" className="border-y border-border bg-surface py-16 md:py-28">
         <Container className="flex flex-col gap-10">
           <Reveal>
             <SectionHeading eyebrow="Menu" title="What's cooking" lead="A taste of the menu. Dishes change with the market and the catch." />
