@@ -20,7 +20,7 @@ Still required: final hosting origin/environment, Supabase auth redirect setup a
 
 ## Latest deployment status
 
-Amoy contract deployed and verified on 2026-10-08: 0x1AedE4EB72E3798F1Ed6fDa8752658E4eCA1E9A9. Deployment transaction: https://amoy.polygonscan.com/tx/0x1343cbbea63bd37bcb1ed70013259bf44a8d2590d92e830cf0fff91bb4744fd9. Script verified successful receipt, at least three confirmations, canonical block, deployed code and matching registrar. Owner funded the wallet with 0.1 test POL. Public RPC batching caused the first attempt to fail before signing; deployment now uses individual requests. Saved PROOF_REGISTRY_ADDRESS locally and development server reloaded .env.local. No real money used. The booking-to-chain workflow has not yet been exercised; no existing booking was changed by deployment.
+Amoy contract deployed and verified on 2026-10-08: the address in `PROOF_REGISTRY_ADDRESS`. Deployment transaction: https://amoy.polygonscan.com/tx/0x1343cbbea63bd37bcb1ed70013259bf44a8d2590d92e830cf0fff91bb4744fd9. Script verified successful receipt, at least three confirmations, canonical block, deployed code and matching registrar. Owner funded the wallet with 0.1 test POL. Public RPC batching caused the first attempt to fail before signing; deployment now uses individual requests. Saved PROOF_REGISTRY_ADDRESS locally and development server reloaded .env.local. No real money used. The booking-to-chain workflow has not yet been exercised; no existing booking was changed by deployment.
 
 Earlier setup notes below are historical where they say funding or deployment is missing. Host environment configuration is still required separately.
 

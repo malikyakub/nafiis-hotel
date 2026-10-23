@@ -2,7 +2,7 @@
 
 ## Latest deployment status
 
-Amoy contract deployed and verified on 2026-10-08: `0x1AedE4EB72E3798F1Ed6fDa8752658E4eCA1E9A9`. Deployment transaction: https://amoy.polygonscan.com/tx/0x1343cbbea63bd37bcb1ed70013259bf44a8d2590d92e830cf0fff91bb4744fd9. Script verified successful receipt, at least three confirmations, canonical block, deployed code and matching registrar. This address and the deployment steps below are historical setup records.
+Amoy contract deployed and verified on 2026-10-08: the address in `PROOF_REGISTRY_ADDRESS`. Deployment transaction: https://amoy.polygonscan.com/tx/0x1343cbbea63bd37bcb1ed70013259bf44a8d2590d92e830cf0fff91bb4744fd9. Script verified successful receipt, at least three confirmations, canonical block, deployed code and matching registrar. This address and the deployment steps below are historical setup records.
 
 The demo booking proof flow was exercised on Amoy on 2026-10-08. The retained demo booking was checked in and then checked out by the owner; read-only verification on 2026-10-09 confirmed `checked_out`, approved payment, and confirmed proof. The receipt was a demo fixture and no real EVC/eDahab transfer occurred. Do not count the demo booking as revenue. This did not verify a real mobile-money transfer, production hosting configuration, or live customer/receptionist acceptance. Do not repeat the demo transaction as part of code review.
 
