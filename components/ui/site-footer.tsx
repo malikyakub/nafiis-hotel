@@ -1,6 +1,7 @@
 import { ArrowUp, Mail, MapPin, Phone, Plane, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { brand } from "@/lib/brand";
+import { liveContact } from "@/lib/live-content";
 import { ROOMS } from "@/lib/content";
 import { BrandMark } from "./brand-mark";
 import { ButtonLink } from "./button";
@@ -35,16 +36,18 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   },
 ];
 
-const REACH: { icon: LucideIcon; text: string; href?: string }[] = [
-  { icon: MapPin, text: `${contact.street}, ${contact.district}, ${brand.city}` },
-  { icon: Phone, text: contact.phone, href: `tel:${contact.phoneHref}` },
-  { icon: Mail, text: contact.email, href: `mailto:${contact.email}` },
-  { icon: Plane, text: `${contact.airportMinutes} min from Aden Adde International` },
-];
 
 const LINK = "w-fit rounded-sm text-sm text-white/75 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  // Phone, email and address come from hotel settings (admin › Settings).
+  const live = await liveContact();
+  const REACH: { icon: LucideIcon; text: string; href?: string }[] = [
+    { icon: MapPin, text: live.address },
+    { icon: Phone, text: live.phone, href: `tel:${live.phoneHref}` },
+    { icon: Mail, text: live.email, href: `mailto:${live.email}` },
+    { icon: Plane, text: `${contact.airportMinutes} min from Aden Adde International` },
+  ];
   return (
     <footer className="lattice bg-foreground pt-14 pb-8 text-white md:pt-20">
       <Container>
@@ -60,7 +63,7 @@ export function SiteFooter() {
             <ButtonLink href="/#book" variant="solid-light">
               Book a room
             </ButtonLink>
-            <ButtonLink href={`tel:${contact.phoneHref}`} variant="ghost-light">
+            <ButtonLink href={`tel:${live.phoneHref}`} variant="ghost-light">
               <Phone aria-hidden />
               Call reception
             </ButtonLink>

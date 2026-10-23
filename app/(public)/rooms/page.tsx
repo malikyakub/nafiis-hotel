@@ -12,13 +12,15 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { cn } from "@/lib/cn";
 import { ROOMS, SHARED_AMENITIES, usd } from "@/lib/content";
 import { photos } from "@/lib/photos";
+import { liveRooms } from "@/lib/live-content";
 
 export const metadata: Metadata = {
   title: "Rooms",
   description: "Ocean rooms, garden rooms and family suites in the heart of Mogadishu.",
 };
 
-export default function RoomsPage() {
+export default async function RoomsPage() {
+  const ROOMS = await liveRooms();
   return (
     <>
       <PageHero
@@ -74,7 +76,7 @@ export default function RoomsPage() {
                     <ButtonLink href={`/rooms/${room.slug}`} variant="secondary">
                       Details
                     </ButtonLink>
-                    <ButtonLink href="/#book" aria-label={`Book the ${room.name}`}>
+                    <ButtonLink href={`/?room_type=${room.bookingType}#book`} aria-label={`Book the ${room.name}`}>
                       Book
                       <ArrowRight aria-hidden />
                     </ButtonLink>

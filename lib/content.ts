@@ -36,7 +36,7 @@ export const DEMO = {
   kitchenHours: "12:00–22:30",
   totalRooms: 32,
   openedYear: 2019,
-  cancellation: "Free cancellation up to 48 hours before check-in. After that, the first night is charged.",
+  cancellation: "Unpaid bookings are cancelled automatically 24 hours after booking. To change or cancel a paid booking, call reception.",
   restaurantOpen: "Yes. The restaurant is open to everyone for breakfast, lunch and dinner, no booking needed.",
 } as const;
 
@@ -149,7 +149,7 @@ export const STAY: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: Sparkles, title: "Daily housekeeping", text: "Fresh linen and a tidy room, every day of your stay." },
   { icon: ConciergeBell, title: "Room service", text: "Meals from our kitchen, brought to your door." },
   { icon: Plane, title: "Airport pickup", text: `On request. We are ${brand.contact.airportMinutes} minutes from Aden Adde International.` },
-  { icon: CalendarCheck, title: "Simple booking", text: "Book online in minutes and pay at reception or online." },
+  { icon: CalendarCheck, title: "Simple booking", text: "Book online in minutes, then pay with EVC Plus or eDahab within 24 hours." },
 ];
 
 export const RESTAURANT_POINTS: Feature[] = [
@@ -229,15 +229,15 @@ export const FAQ: Faq[] = [
   },
   {
     question: "How can I pay?",
-    answer: "At reception when you arrive, or online. Restaurant orders made during your stay are added to your bill, itemised.",
+    answer: "With EVC Plus or eDahab. After booking, send the total and upload your payment screenshot within 24 hours; unpaid bookings are cancelled. Restaurant orders made during your stay are added to your bill, itemised.",
   },
   {
     question: "Can you collect me from the airport?",
-    answer: `Yes, on request. We are ${brand.contact.airportMinutes} minutes from Aden Adde International Airport. Add your flight details when you book, or call reception.`,
+    answer: `Yes, on request. We are ${brand.contact.airportMinutes} minutes from Aden Adde International Airport. Call reception with your arrival time.`,
   },
   {
     question: "Can I cancel or change my booking?",
-    answer: `${DEMO.cancellation} Call reception and we will help you change your dates.`,
+    answer: DEMO.cancellation,
   },
   {
     question: "Is the restaurant open to guests who are not staying?",

@@ -28,8 +28,12 @@ supabase/.branches/
 
 # vercel
 .vercel
+.netlify/
+.deployment/
+*.zip
 
 # misc
+.chain-local/
 .DS_Store
 *.pem
 npm-debug.log*
