@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Gloock } from "next/font/google";
+import { Suspense } from "react";
+import { AppModeNavigation } from "@/components/ui/app-mode-navigation";
 import { AlertProvider } from "@/components/ui/alert-provider";
 import { brand } from "@/lib/brand";
 import "./globals.css";
@@ -34,6 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${geist.variable} ${gloock.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         <AlertProvider>{children}</AlertProvider>
+        <Suspense fallback={null}><AppModeNavigation /></Suspense>
       </body>
     </html>
   );
